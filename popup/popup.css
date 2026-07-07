@@ -1,0 +1,147 @@
+:root {
+  --yellow-deep: #edb100;
+  --yellow-mid: #ffd100;
+  --yellow-light: #ffed66;
+  --ink: #111111;
+  --surface: #fffdf2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 280px;
+  padding: 14px;
+  font-family: "SF Pro Rounded", "Avenir Next Rounded", ui-rounded, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, var(--yellow-deep), var(--yellow-mid) 52%, var(--yellow-light));
+  box-shadow:
+    0 10px 24px rgba(17, 17, 17, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.brand-icon {
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(17, 17, 17, 0.12);
+}
+
+.brand-header h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+#date-label {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(17, 17, 17, 0.72);
+}
+
+.counts {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.counts li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.counts li:last-child {
+  border-bottom: none;
+}
+
+.platform {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(17, 17, 17, 0.72);
+}
+
+.count {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.total-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background: linear-gradient(145deg, var(--yellow-deep), var(--yellow-mid) 52%, var(--yellow-light));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+#count-total {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.settings label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#daily-max {
+  width: 92px;
+  padding: 8px 10px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+}
+
+.max-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(17, 17, 17, 0.6);
+}
+
+.settings-help {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(17, 17, 17, 0.58);
+}

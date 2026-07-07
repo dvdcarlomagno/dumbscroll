@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dumbscroll</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="brand-header">
+      <img src="../icons/icon-48.png" alt="" class="brand-icon" width="40" height="40" />
+      <div>
+        <h1>Dumbscroll</h1>
+        <p id="date-label"></p>
+      </div>
+    </header>
+
+    <ul class="counts">
+      <li>
+        <span class="platform">LinkedIn</span>
+        <span class="count" id="count-linkedin">0</span>
+      </li>
+      <li>
+        <span class="platform">X</span>
+        <span class="count" id="count-x">0</span>
+      </li>
+      <li>
+        <span class="platform">YouTube</span>
+        <span class="count" id="count-youtube">0</span>
+      </li>
+    </ul>
+
+    <footer class="total-card">
+      <span>Total</span>
+      <strong id="count-total">0</strong>
+    </footer>
+
+    <section class="settings">
+      <label for="daily-max">Daily max (combined)</label>
+      <div class="settings-row">
+        <input id="daily-max" type="number" min="1" max="9999" step="1" />
+        <span id="max-status" class="max-status" aria-live="polite"></span>
+      </div>
+      <p class="settings-help">At this total, the counter covers the top two-thirds of the screen.</p>
+    </section>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,68 @@
+{
+  "manifest_version": 3,
+  "name": "Dumbscroll",
+  "version": "1.2.0",
+  "description": "Track how many social posts and videos you scroll each day — with a yellow counter that grows until you look away.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://linkedin.com/*",
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://www.youtube.com/*",
+    "https://youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Dumbscroll",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/*", "https://linkedin.com/*"],
+      "js": [
+        "content/shared/storage.js",
+        "content/shared/overlay.js",
+        "content/shared/post-tracker.js",
+        "content/linkedin.js"
+      ],
+      "css": ["styles/overlay.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": [
+        "content/shared/storage.js",
+        "content/shared/overlay.js",
+        "content/shared/post-tracker.js",
+        "content/x.js"
+      ],
+      "css": ["styles/overlay.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
+      "js": [
+        "content/shared/storage.js",
+        "content/shared/overlay.js",
+        "content/youtube.js"
+      ],
+      "css": ["styles/overlay.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
