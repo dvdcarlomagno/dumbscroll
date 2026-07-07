@@ -2,7 +2,7 @@ const DoomscrollPostTracker = (() => {
   const DWELL_MS = 800;
   const RATIO_THRESHOLD = 0.25;
 
-  function create({ platform, getPostId, isPost, postSelector }) {
+  function create({ platform, getPostId, isPost, postSelector, findPosts }) {
     const observed = new WeakSet();
     const counted = new WeakSet();
     const dwellTimers = new WeakMap();
@@ -81,12 +81,27 @@ const DoomscrollPostTracker = (() => {
       observer.observe(el);
     }
 
-    function scan(root = document) {
-      if (root instanceof HTMLElement && isPost(root)) {
-        observePost(root);
+    function collectPosts(root = document) {
+      if (typeof findPosts === "function") {
+        return findPosts(root);
       }
 
-      root.querySelectorAll(postSelector).forEach(observePost);
+      const posts = [];
+      if (root instanceof HTMLElement && isPost(root)) {
+        posts.push(root);
+      }
+
+      root.querySelectorAll(postSelector).forEach((el) => {
+        if (isPost(el)) {
+          posts.push(el);
+        }
+      });
+
+      return posts;
+    }
+
+    function scan(root = document) {
+      collectPosts(root).forEach(observePost);
     }
 
     function init() {

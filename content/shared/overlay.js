@@ -61,7 +61,7 @@ const DumbscrollOverlay = (() => {
     valueEl = document.createElement("span");
     valueEl.className = "dumbscroll-counter-value";
 
-    contentEl.append(icon, valueEl);
+    contentEl.append(valueEl, icon);
     el.append(contentEl);
     document.documentElement.appendChild(el);
     return el;

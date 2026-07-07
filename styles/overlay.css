@@ -61,12 +61,3 @@
 #dumbscroll-counter-overlay.at-max {
   box-shadow: 0 16px 48px rgba(17, 17, 17, 0.22);
 }
-
-#dumbscroll-counter-overlay.at-max .dumbscroll-counter-content {
-  flex-direction: column;
-  gap: 0.2em;
-}
-
-#dumbscroll-counter-overlay.at-max .dumbscroll-counter-icon {
-  font-size: 1.15em;
-}
