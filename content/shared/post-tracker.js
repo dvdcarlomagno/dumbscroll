@@ -111,3 +111,5 @@ const DoomscrollPostTracker = (() => {
 
   return { create, DWELL_MS, RATIO_THRESHOLD };
 })();
+
+const DumbscrollPostTracker = DoomscrollPostTracker;
