@@ -7,18 +7,38 @@ const DumbscrollBrand = {
 
 const DumbscrollOverlay = (() => {
   let el = null;
+  let contentEl = null;
   let valueEl = null;
   let storageListenerAttached = false;
-  const MAX_COVER_RATIO = 2 / 3;
+  const MIN_HEIGHT_PX = 1;
   const ICON_SVG = `
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="M12 3.5a.75.75 0 0 1 .75.75v9.19l2.72-2.72a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 1 1 1.06-1.06l2.72 2.72V4.25A.75.75 0 0 1 12 3.5Zm-8 14.25a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Z"/>
+      <path fill="currentColor" d="M12 5.25C7.17 5.25 3.047 8.882 1.5 12c1.547 3.118 5.67 6.75 10.5 6.75s8.953-3.632 10.5-6.75C20.953 8.882 16.83 5.25 12 5.25Zm0 11.25a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Zm0-2.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z"/>
     </svg>
   `;
 
-  function fontSize(count, max) {
-    const progress = Math.min(count / max, 1);
-    return 14 + progress * 34;
+  function progressFor(count, max) {
+    if (max <= 0) {
+      return 0;
+    }
+
+    return Math.min(Math.max(count / max, 0), 1);
+  }
+
+  function heightFor(count, max) {
+    const progress = progressFor(count, max);
+    const viewportHeight = window.innerHeight;
+
+    if (count <= 0) {
+      return MIN_HEIGHT_PX;
+    }
+
+    return Math.max(MIN_HEIGHT_PX, progress * viewportHeight);
+  }
+
+  function fontSizeFor(progress, viewportHeight) {
+    const scaled = 14 + progress * Math.min(viewportHeight * 0.18, 160);
+    return Math.max(14, scaled);
   }
 
   function ensure() {
@@ -31,6 +51,9 @@ const DumbscrollOverlay = (() => {
     el.setAttribute("aria-live", "polite");
     el.setAttribute("aria-label", "Today's combined dumbscroll count");
 
+    contentEl = document.createElement("div");
+    contentEl.className = "dumbscroll-counter-content";
+
     const icon = document.createElement("span");
     icon.className = "dumbscroll-counter-icon";
     icon.innerHTML = ICON_SVG;
@@ -38,51 +61,26 @@ const DumbscrollOverlay = (() => {
     valueEl = document.createElement("span");
     valueEl.className = "dumbscroll-counter-value";
 
-    el.append(icon, valueEl);
+    contentEl.append(icon, valueEl);
+    el.append(contentEl);
     document.documentElement.appendChild(el);
     return el;
   }
 
   function applyLayout(count, max) {
     const overlay = ensure();
-    const progress = Math.min(count / max, 1);
+    const progress = progressFor(count, max);
+    const viewportHeight = window.innerHeight;
+    const heightPx = heightFor(count, max);
     const atMax = count >= max;
 
     valueEl.textContent = String(count);
     overlay.dataset.max = String(max);
+    overlay.dataset.progress = String(progress);
+    overlay.style.height = `${heightPx}px`;
+    overlay.style.fontSize = `${fontSizeFor(progress, viewportHeight)}px`;
     overlay.classList.toggle("at-max", atMax);
-    overlay.classList.toggle("growing", !atMax && progress >= 0.6);
-
-    if (atMax) {
-      overlay.style.fontSize = `${Math.min(window.innerHeight * 0.22, 220)}px`;
-      overlay.style.width = "100%";
-      overlay.style.height = `${MAX_COVER_RATIO * 100}vh`;
-      overlay.style.top = "0";
-      overlay.style.left = "0";
-      overlay.style.transform = "none";
-      overlay.style.borderRadius = "0";
-      return;
-    }
-
-    overlay.style.top = "12px";
-    overlay.style.left = "50%";
-    overlay.style.transform = "translateX(-50%)";
-    overlay.style.borderRadius = progress >= 0.6 ? "18px" : "999px";
-    overlay.style.fontSize = `${fontSize(count, max)}px`;
-
-    if (progress >= 0.6) {
-      const minHeight = 44;
-      const targetHeight = window.innerHeight * MAX_COVER_RATIO;
-      const growProgress = (progress - 0.6) / 0.4;
-      const height = minHeight + growProgress * (targetHeight - minHeight);
-      const width = 132 + growProgress * (window.innerWidth - 132);
-
-      overlay.style.height = `${height}px`;
-      overlay.style.width = `${Math.min(width, window.innerWidth)}px`;
-    } else {
-      overlay.style.height = "";
-      overlay.style.width = "";
-    }
+    overlay.classList.toggle("has-content", heightPx >= 56);
   }
 
   async function refresh() {
@@ -126,7 +124,7 @@ const DumbscrollOverlay = (() => {
     refresh();
   }
 
-  return { refresh, init, fontSize, brand: DumbscrollBrand };
+  return { refresh, init, brand: DumbscrollBrand };
 })();
 
 const DoomscrollOverlay = DumbscrollOverlay;

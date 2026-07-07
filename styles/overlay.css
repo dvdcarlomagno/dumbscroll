@@ -5,47 +5,52 @@
   --dumbscroll-ink: #111111;
 
   position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0;
+  left: 0;
+  width: 100%;
   z-index: 2147483646;
   pointer-events: none;
   user-select: none;
+  overflow: hidden;
 
-  display: inline-flex;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: linear-gradient(
+    180deg,
+    var(--dumbscroll-yellow-light) 0%,
+    var(--dumbscroll-yellow-mid) 42%,
+    var(--dumbscroll-yellow-deep) 100%
+  );
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.14);
+  transition: height 0.28s ease, box-shadow 0.28s ease;
+}
+
+#dumbscroll-counter-overlay .dumbscroll-counter-content {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.35em;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 
   font-family: "SF Pro Rounded", "Avenir Next Rounded", ui-rounded, "Segoe UI", sans-serif;
   font-weight: 800;
   line-height: 1;
   color: var(--dumbscroll-ink);
+  text-align: center;
+}
 
-  padding: 0.45em 0.8em;
-  border-radius: 999px;
-  background: linear-gradient(
-    145deg,
-    var(--dumbscroll-yellow-deep) 0%,
-    var(--dumbscroll-yellow-mid) 52%,
-    var(--dumbscroll-yellow-light) 100%
-  );
-  box-shadow:
-    0 10px 28px rgba(17, 17, 17, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition:
-    font-size 0.25s ease,
-    width 0.25s ease,
-    height 0.25s ease,
-    border-radius 0.25s ease,
-    box-shadow 0.25s ease;
+#dumbscroll-counter-overlay.has-content .dumbscroll-counter-content {
+  opacity: 1;
 }
 
 #dumbscroll-counter-overlay .dumbscroll-counter-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72em;
+  font-size: 0.9em;
   color: var(--dumbscroll-ink);
 }
 
@@ -53,29 +58,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-#dumbscroll-counter-overlay.growing {
-  box-shadow:
-    0 16px 40px rgba(17, 17, 17, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+#dumbscroll-counter-overlay.at-max {
+  box-shadow: 0 16px 48px rgba(17, 17, 17, 0.22);
 }
 
-#dumbscroll-counter-overlay.at-max {
-  top: 0;
-  left: 0;
-  transform: none;
-  width: 100%;
-  height: 66.67vh;
-  padding: 0;
-  gap: 0.2em;
-  border-radius: 0;
+#dumbscroll-counter-overlay.at-max .dumbscroll-counter-content {
   flex-direction: column;
-  box-shadow: 0 18px 48px rgba(17, 17, 17, 0.24);
+  gap: 0.2em;
 }
 
 #dumbscroll-counter-overlay.at-max .dumbscroll-counter-icon {
-  font-size: 0.42em;
-}
-
-#dumbscroll-counter-overlay.at-max .dumbscroll-counter-value {
-  font-size: 1em;
+  font-size: 1.15em;
 }

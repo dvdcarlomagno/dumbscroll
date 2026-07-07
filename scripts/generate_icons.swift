@@ -64,7 +64,7 @@ private func renderIcon(pixelSize: Int) -> NSImage {
         .applying(.init(paletteColors: [.black]))
 
     guard
-        let baseSymbol = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: "Dumbscroll"),
+        let baseSymbol = NSImage(systemSymbolName: "eye.fill", accessibilityDescription: "Dumbscroll"),
         let symbol = baseSymbol.withSymbolConfiguration(symbolConfig)
     else {
         return image

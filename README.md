@@ -11,7 +11,7 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 - **LinkedIn & X** — counts each post once when ≥25% is visible, or any part stays visible for 800ms
 - **YouTube** — counts each distinct video when playback starts
 - **Combined daily total** across all three platforms
-- **Growing yellow overlay** — master-yellow gradient, black scroll icon + count, scales toward 2/3 screen at your daily max
+- **Growing yellow bar** — starts as a 1px line at the top; height scales linearly with today's total vs your max (100% = full screen); black eye icon + count centered on the bar
 - **Popup** — per-platform breakdown, total vs max, editable daily limit (default 100)
 - **Local-only** — `chrome.storage.local`, resets at local midnight
 
