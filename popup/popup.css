@@ -133,6 +133,14 @@ body {
   background: #fff;
 }
 
+#daily-max:disabled,
+#daily-max.is-locked {
+  cursor: not-allowed;
+  color: rgba(17, 17, 17, 0.45);
+  background: rgba(17, 17, 17, 0.04);
+  border-color: rgba(17, 17, 17, 0.08);
+}
+
 .max-status {
   font-size: 12px;
   font-weight: 600;

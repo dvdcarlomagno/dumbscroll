@@ -41,9 +41,13 @@
         <input id="daily-max" type="number" min="1" max="9999" step="1" />
         <span id="max-status" class="max-status" aria-live="polite"></span>
       </div>
-      <p class="settings-help">At this total, the yellow bar fills the full screen height.</p>
+      <p id="settings-help" class="settings-help">
+        At this total, the yellow bar fills the full screen height. You can change the limit only
+        while below 50% of today's usage.
+      </p>
     </section>
 
+    <script src="../content/shared/limit-lock.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

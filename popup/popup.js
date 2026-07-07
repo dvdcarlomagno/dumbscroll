@@ -28,19 +28,76 @@ function normalizeMax(value) {
   return Math.min(Math.round(parsed), 9999);
 }
 
-async function loadSettings() {
+async function readStoredSettings() {
   const stored = await chrome.storage.local.get([SETTINGS_KEY, LEGACY_SETTINGS_KEY]);
-  const settings = stored[SETTINGS_KEY] ?? stored[LEGACY_SETTINGS_KEY];
+  return stored[SETTINGS_KEY] ?? stored[LEGACY_SETTINGS_KEY];
+}
+
+async function readTodayUsage() {
+  const today = todayKey();
+  const stored = await chrome.storage.local.get([STATE_KEY, LEGACY_STATE_KEY]);
+  const doomscroll = stored[STATE_KEY] ?? stored[LEGACY_STATE_KEY];
+
+  if (!doomscroll || doomscroll.date !== today) {
+    return 0;
+  }
+
+  const counts = doomscroll.counts;
+  return counts.linkedin + counts.x + counts.youtube;
+}
+
+function updateLimitControl(total, dailyMax) {
+  const input = document.getElementById("daily-max");
+  const help = document.getElementById("settings-help");
+  const locked = !DumbscrollLimitLock.canChangeDailyLimit(total, dailyMax);
+  const reason = DumbscrollLimitLock.lockReason(total, dailyMax);
+
+  input.disabled = locked;
+  input.classList.toggle("is-locked", locked);
+
+  if (locked && reason) {
+    help.textContent = reason;
+  } else {
+    help.textContent =
+      "At this total, the yellow bar fills the full screen height. You can change the limit only while below 50% of today's usage.";
+  }
+}
+
+async function loadSettings() {
+  const settings = await readStoredSettings();
   const dailyMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
+  const total = await readTodayUsage();
+
   document.getElementById("daily-max").value = String(dailyMax);
+  updateLimitControl(total, dailyMax);
 }
 
 async function saveSettings(showStatus = true) {
   const input = document.getElementById("daily-max");
+  const settings = await readStoredSettings();
+  const currentMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
+  const total = await readTodayUsage();
+
+  if (!DumbscrollLimitLock.canChangeDailyLimit(total, currentMax)) {
+    input.value = String(currentMax);
+    updateLimitControl(total, currentMax);
+
+    if (showStatus) {
+      const status = document.getElementById("max-status");
+      status.textContent = "Locked";
+      setTimeout(() => {
+        status.textContent = "";
+      }, 1200);
+    }
+
+    return;
+  }
+
   const dailyMax = normalizeMax(input.value);
   input.value = String(dailyMax);
 
   await chrome.storage.local.set({ [SETTINGS_KEY]: { dailyMax } });
+  updateLimitControl(total, dailyMax);
 
   if (showStatus) {
     const status = document.getElementById("max-status");
@@ -76,6 +133,13 @@ async function render() {
   document.getElementById("count-x").textContent = counts.x;
   document.getElementById("count-youtube").textContent = counts.youtube;
   document.getElementById("count-total").textContent = `${total} / ${dailyMax}`;
+
+  const input = document.getElementById("daily-max");
+  if (!input.matches(":focus")) {
+    input.value = String(dailyMax);
+  }
+
+  updateLimitControl(total, dailyMax);
 }
 
 const maxInput = document.getElementById("daily-max");
