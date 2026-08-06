@@ -17,16 +17,23 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 
 ## Install (load unpacked)
 
-```bash
-git clone git@github.com:dvdcarlomagno/dumbscroll.git
-cd dumbscroll
-```
+**Download the latest release zip:**  
+[dumbscroll-v1.3.3.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v1.3.3.zip)
+
+Unzip, then:
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the `dumbscroll` folder
+4. Select the unzipped `dumbscroll-1.3.3` folder
 5. After updates, click **Reload** and refresh open tabs
+
+Or clone from source:
+
+```bash
+git clone git@github.com:dvdcarlomagno/dumbscroll.git
+cd dumbscroll
+```
 
 ## Brand
 
