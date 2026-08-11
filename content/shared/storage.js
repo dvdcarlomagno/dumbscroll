@@ -1,7 +1,11 @@
-/* global chrome */
+/* global chrome, DumbscrollWindDown */
 const DumbscrollStorage = (() => {
   const PLATFORMS = ["linkedin", "x", "youtube"];
   const DEFAULT_DAILY_MAX = 100;
+  const DEFAULT_WIND_DOWN_TIME =
+    typeof DumbscrollWindDown !== "undefined"
+      ? DumbscrollWindDown.DEFAULT_WIND_DOWN_TIME
+      : "19:00";
   const LEGACY_STATE_KEY = "doomscroll";
   const LEGACY_SETTINGS_KEY = "doomscrollSettings";
   const STATE_KEY = "dumbscroll";
@@ -42,6 +46,23 @@ const DumbscrollStorage = (() => {
     }
   }
 
+  function normalizeWindDownTime(value) {
+    if (typeof DumbscrollWindDown !== "undefined") {
+      return DumbscrollWindDown.normalizeWindDownTime(value);
+    }
+
+    if (typeof value !== "string") {
+      return DEFAULT_WIND_DOWN_TIME;
+    }
+
+    const match = value.trim().match(/^([01]?\d|2[0-3]):([0-5]\d)/);
+    if (!match) {
+      return DEFAULT_WIND_DOWN_TIME;
+    }
+
+    return `${String(Number(match[1])).padStart(2, "0")}:${String(Number(match[2])).padStart(2, "0")}`;
+  }
+
   async function getSettings() {
     await migrateLegacyStorage();
     const { [SETTINGS_KEY]: settings } = await chrome.storage.local.get(SETTINGS_KEY);
@@ -52,11 +73,16 @@ const DumbscrollStorage = (() => {
         Number.isFinite(dailyMax) && dailyMax >= 1
           ? Math.round(dailyMax)
           : DEFAULT_DAILY_MAX,
+      windDownTime: normalizeWindDownTime(settings?.windDownTime),
     };
   }
 
   async function getDailyMax() {
     return (await getSettings()).dailyMax;
+  }
+
+  async function getWindDownTime() {
+    return (await getSettings()).windDownTime;
   }
 
   async function getState() {
@@ -109,10 +135,12 @@ const DumbscrollStorage = (() => {
     getCombinedTotal,
     getSettings,
     getDailyMax,
+    getWindDownTime,
     increment,
     todayKey,
     PLATFORMS,
     DEFAULT_DAILY_MAX,
+    DEFAULT_WIND_DOWN_TIME,
   };
 })();
 

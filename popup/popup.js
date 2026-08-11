@@ -1,9 +1,11 @@
 const DEFAULT_DAILY_MAX = 100;
+const DEFAULT_WIND_DOWN_TIME = DumbscrollWindDown.DEFAULT_WIND_DOWN_TIME;
 const STATE_KEY = "dumbscroll";
 const LEGACY_STATE_KEY = "doomscroll";
 const SETTINGS_KEY = "dumbscrollSettings";
 const LEGACY_SETTINGS_KEY = "doomscrollSettings";
 let saveTimer = null;
+let windDownSaveTimer = null;
 
 function todayKey() {
   return new Date().toLocaleDateString("en-CA");
@@ -26,6 +28,10 @@ function normalizeMax(value) {
   }
 
   return Math.min(Math.round(parsed), 9999);
+}
+
+function normalizeWindDownTime(value) {
+  return DumbscrollWindDown.normalizeWindDownTime(value ?? DEFAULT_WIND_DOWN_TIME);
 }
 
 async function readStoredSettings() {
@@ -63,16 +69,28 @@ function updateLimitControl(total, dailyMax) {
   }
 }
 
+async function buildSettingsPayload({ dailyMax, windDownTime }) {
+  const settings = await readStoredSettings();
+  return {
+    dailyMax: normalizeMax(dailyMax ?? settings?.dailyMax ?? DEFAULT_DAILY_MAX),
+    windDownTime: normalizeWindDownTime(
+      windDownTime ?? settings?.windDownTime ?? DEFAULT_WIND_DOWN_TIME
+    ),
+  };
+}
+
 async function loadSettings() {
   const settings = await readStoredSettings();
   const dailyMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
+  const windDownTime = normalizeWindDownTime(settings?.windDownTime);
   const total = await readTodayUsage();
 
   document.getElementById("daily-max").value = String(dailyMax);
+  document.getElementById("wind-down").value = windDownTime;
   updateLimitControl(total, dailyMax);
 }
 
-async function saveSettings(showStatus = true) {
+async function saveDailyMax(showStatus = true) {
   const input = document.getElementById("daily-max");
   const settings = await readStoredSettings();
   const currentMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
@@ -96,11 +114,35 @@ async function saveSettings(showStatus = true) {
   const dailyMax = normalizeMax(input.value);
   input.value = String(dailyMax);
 
-  await chrome.storage.local.set({ [SETTINGS_KEY]: { dailyMax } });
+  const payload = await buildSettingsPayload({
+    dailyMax,
+    windDownTime: document.getElementById("wind-down").value,
+  });
+  await chrome.storage.local.set({ [SETTINGS_KEY]: payload });
   updateLimitControl(total, dailyMax);
 
   if (showStatus) {
     const status = document.getElementById("max-status");
+    status.textContent = "Saved";
+    setTimeout(() => {
+      status.textContent = "";
+    }, 1200);
+  }
+}
+
+async function saveWindDown(showStatus = true) {
+  const input = document.getElementById("wind-down");
+  const windDownTime = normalizeWindDownTime(input.value);
+  input.value = windDownTime;
+
+  const payload = await buildSettingsPayload({
+    dailyMax: document.getElementById("daily-max").value,
+    windDownTime,
+  });
+  await chrome.storage.local.set({ [SETTINGS_KEY]: payload });
+
+  if (showStatus) {
+    const status = document.getElementById("wind-down-status");
     status.textContent = "Saved";
     setTimeout(() => {
       status.textContent = "";
@@ -127,6 +169,7 @@ async function render() {
 
   const total = counts.linkedin + counts.x + counts.youtube;
   const dailyMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
+  const windDownTime = normalizeWindDownTime(settings?.windDownTime);
 
   document.getElementById("date-label").textContent = `Today · ${formatDateLabel(today)}`;
   document.getElementById("count-linkedin").textContent = counts.linkedin;
@@ -134,27 +177,47 @@ async function render() {
   document.getElementById("count-youtube").textContent = counts.youtube;
   document.getElementById("count-total").textContent = `${total} / ${dailyMax}`;
 
-  const input = document.getElementById("daily-max");
-  if (!input.matches(":focus")) {
-    input.value = String(dailyMax);
+  const maxInput = document.getElementById("daily-max");
+  if (!maxInput.matches(":focus")) {
+    maxInput.value = String(dailyMax);
+  }
+
+  const windDownInput = document.getElementById("wind-down");
+  if (!windDownInput.matches(":focus")) {
+    windDownInput.value = windDownTime;
   }
 
   updateLimitControl(total, dailyMax);
 }
 
 const maxInput = document.getElementById("daily-max");
+const windDownInput = document.getElementById("wind-down");
 
 maxInput.addEventListener("input", () => {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    saveSettings(true);
+    saveDailyMax(true);
     render();
   }, 400);
 });
 
 maxInput.addEventListener("change", () => {
   clearTimeout(saveTimer);
-  saveSettings(true);
+  saveDailyMax(true);
+  render();
+});
+
+windDownInput.addEventListener("input", () => {
+  clearTimeout(windDownSaveTimer);
+  windDownSaveTimer = setTimeout(() => {
+    saveWindDown(true);
+    render();
+  }, 400);
+});
+
+windDownInput.addEventListener("change", () => {
+  clearTimeout(windDownSaveTimer);
+  saveWindDown(true);
   render();
 });
 

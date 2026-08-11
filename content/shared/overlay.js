@@ -1,3 +1,4 @@
+/* global DumbscrollStorage, DumbscrollWindDown */
 const DumbscrollBrand = {
   yellowDeep: "#EDB100",
   yellowMid: "#FFD100",
@@ -10,6 +11,7 @@ const DumbscrollOverlay = (() => {
   let contentEl = null;
   let valueEl = null;
   let storageListenerAttached = false;
+  let windDownTimer = null;
   const MIN_HEIGHT_PX = 1;
   const ICON_SVG = `
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false">
@@ -25,11 +27,29 @@ const DumbscrollOverlay = (() => {
     return Math.min(Math.max(count / max, 0), 1);
   }
 
-  function heightFor(count, max) {
-    const progress = progressFor(count, max);
+  function resolveOverlayView({ count, max, windDownTime, now = new Date() }) {
+    const windDown = DumbscrollWindDown.isWindDownActive(now, windDownTime);
+    const countProgress = progressFor(count, max);
+    const heightProgress = windDown ? 1 : countProgress;
+    const atMax = windDown || count >= max;
+    const label = windDown
+      ? DumbscrollWindDown.WIND_DOWN_LABEL
+      : String(count);
+
+    return {
+      windDown,
+      heightProgress,
+      atMax,
+      label,
+      count,
+      max,
+    };
+  }
+
+  function heightForProgress(progress, count, windDown) {
     const viewportHeight = window.innerHeight;
 
-    if (count <= 0) {
+    if (!windDown && count <= 0) {
       return MIN_HEIGHT_PX;
     }
 
@@ -67,29 +87,61 @@ const DumbscrollOverlay = (() => {
     return el;
   }
 
-  function applyLayout(count, max) {
+  function applyLayout(view) {
     const overlay = ensure();
-    const progress = progressFor(count, max);
     const viewportHeight = window.innerHeight;
-    const heightPx = heightFor(count, max);
-    const atMax = count >= max;
+    const heightPx = heightForProgress(view.heightProgress, view.count, view.windDown);
 
-    valueEl.textContent = String(count);
-    overlay.dataset.max = String(max);
-    overlay.dataset.progress = String(progress);
+    valueEl.textContent = view.label;
+    overlay.dataset.max = String(view.max);
+    overlay.dataset.progress = String(view.heightProgress);
+    overlay.dataset.windDown = view.windDown ? "true" : "false";
     overlay.style.height = `${heightPx}px`;
-    overlay.style.fontSize = `${fontSizeFor(progress, viewportHeight)}px`;
-    overlay.classList.toggle("at-max", atMax);
-    overlay.classList.toggle("has-content", heightPx >= 56);
+    overlay.style.fontSize = `${fontSizeFor(view.heightProgress, viewportHeight)}px`;
+    overlay.classList.toggle("at-max", view.atMax);
+    overlay.classList.toggle("has-content", heightPx >= 56 || view.windDown);
+    overlay.classList.toggle("wind-down", view.windDown);
+    overlay.setAttribute(
+      "aria-label",
+      view.windDown
+        ? DumbscrollWindDown.WIND_DOWN_LABEL
+        : "Today's combined dumbscroll count"
+    );
+  }
+
+  function clearWindDownTimer() {
+    if (windDownTimer !== null) {
+      clearTimeout(windDownTimer);
+      windDownTimer = null;
+    }
+  }
+
+  function scheduleWindDownRefresh(windDownTime, now = new Date()) {
+    clearWindDownTimer();
+
+    const ms = DumbscrollWindDown.msUntilNextWindDownTransition(now, windDownTime);
+    if (ms === null) {
+      return;
+    }
+
+    // Timers above ~24d are unreliable; clamp to one day + buffer.
+    const delay = Math.min(ms + 25, 24 * 60 * 60 * 1000);
+    windDownTimer = setTimeout(() => {
+      refresh();
+    }, delay);
   }
 
   async function refresh() {
-    const [count, max] = await Promise.all([
+    const now = new Date();
+    const [count, max, windDownTime] = await Promise.all([
       DumbscrollStorage.getCombinedTotal(),
       DumbscrollStorage.getDailyMax(),
+      DumbscrollStorage.getWindDownTime(),
     ]);
 
-    applyLayout(count, max);
+    const view = resolveOverlayView({ count, max, windDownTime, now });
+    applyLayout(view);
+    scheduleWindDownRefresh(windDownTime, now);
   }
 
   function attachStorageListener() {
@@ -124,7 +176,16 @@ const DumbscrollOverlay = (() => {
     refresh();
   }
 
-  return { refresh, init, brand: DumbscrollBrand };
+  return {
+    refresh,
+    init,
+    resolveOverlayView,
+    brand: DumbscrollBrand,
+  };
 })();
 
 const DoomscrollOverlay = DumbscrollOverlay;
+
+if (typeof module !== "undefined") {
+  module.exports = DumbscrollOverlay;
+}
