@@ -45,8 +45,19 @@
         At this total, the yellow bar fills the full screen height. You can change the limit only
         while below 50% of today's usage.
       </p>
+
+      <label for="wind-down" class="settings-label-spaced">Wind down</label>
+      <div class="settings-row">
+        <input id="wind-down" type="time" />
+        <span id="wind-down-status" class="max-status" aria-live="polite"></span>
+      </div>
+      <p id="wind-down-help" class="settings-help">
+        After this time, the yellow bar fills the screen until midnight — no matter how many posts
+        you've seen.
+      </p>
     </section>
 
+    <script src="../content/shared/wind-down.js"></script>
     <script src="../content/shared/limit-lock.js"></script>
     <script src="popup.js"></script>
   </body>

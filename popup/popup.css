@@ -122,7 +122,8 @@ body {
   margin-top: 8px;
 }
 
-#daily-max {
+#daily-max,
+#wind-down {
   width: 92px;
   padding: 8px 10px;
   border: 1px solid rgba(17, 17, 17, 0.12);
@@ -133,12 +134,20 @@ body {
   background: #fff;
 }
 
+#wind-down {
+  width: 120px;
+}
+
 #daily-max:disabled,
 #daily-max.is-locked {
   cursor: not-allowed;
   color: rgba(17, 17, 17, 0.45);
   background: rgba(17, 17, 17, 0.04);
   border-color: rgba(17, 17, 17, 0.08);
+}
+
+.settings-label-spaced {
+  margin-top: 14px;
 }
 
 .max-status {

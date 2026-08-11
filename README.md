@@ -1,6 +1,6 @@
 # Dumbscroll
 
-A Chromium extension that counts how many social posts and videos you consume each day — with a yellow counter that grows until it covers two-thirds of the screen.
+A Chromium extension that counts how many social posts and videos you consume each day — with a yellow counter that grows until it covers the full screen.
 
 Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/look-away): bold color field, rounded corners, black icon on top.
 
@@ -12,20 +12,21 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 - **YouTube** — counts each distinct video when playback starts
 - **Combined daily total** across all three platforms
 - **Growing yellow bar** — starts as a 1px line at the top; height scales linearly with today's total vs your max (100% = full screen); black eye icon + count centered on the bar
-- **Popup** — per-platform breakdown, total vs max, editable daily limit (default 100)
+- **Wind down** — after a set local time (default 7:00 PM), the bar fills the screen until midnight regardless of post count, and shows **Wind down** instead of the number
+- **Popup** — per-platform breakdown, total vs max, editable daily limit (default 100) and wind-down time
 - **Local-only** — `chrome.storage.local`, resets at local midnight
 
 ## Install (load unpacked)
 
 **Download the latest release zip:**  
-[dumbscroll-v1.3.3.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v1.3.3.zip)
+[dumbscroll-v2.0.0.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.0.0.zip)
 
 Unzip, then:
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the unzipped `dumbscroll-1.3.3` folder
+4. Select the unzipped `dumbscroll-2.0.0` folder
 5. After updates, click **Reload** and refresh open tabs
 
 Or clone from source:
@@ -60,15 +61,24 @@ dumbscroll/
 ├── scripts/generate_icons.swift
 ├── content/
 │   ├── shared/
+│   │   ├── wind-down.js
 │   │   ├── storage.js
 │   │   ├── overlay.js
+│   │   ├── limit-lock.js
 │   │   └── post-tracker.js
 │   ├── linkedin.js
 │   ├── x.js
 │   └── youtube.js
 ├── popup/
-└── styles/
-    └── overlay.css
+├── styles/
+│   └── overlay.css
+└── tests/
+```
+
+## Tests
+
+```bash
+node --test tests/*.test.js
 ```
 
 ## License
