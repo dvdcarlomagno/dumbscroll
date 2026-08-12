@@ -64,12 +64,26 @@ const DumbscrollWindDown = (() => {
     return ms > 0 ? ms : null;
   }
 
+  function canChangeWindDownTime(now, windDownTime) {
+    return !isWindDownActive(now, windDownTime);
+  }
+
+  function windDownLockReason(now, windDownTime) {
+    if (canChangeWindDownTime(now, windDownTime)) {
+      return null;
+    }
+
+    return "Wind down has started. You can change the time again tomorrow.";
+  }
+
   return {
     DEFAULT_WIND_DOWN_TIME,
     WIND_DOWN_LABEL,
     normalizeWindDownTime,
     isWindDownActive,
     msUntilNextWindDownTransition,
+    canChangeWindDownTime,
+    windDownLockReason,
   };
 })();
 

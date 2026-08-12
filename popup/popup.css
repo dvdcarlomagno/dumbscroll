@@ -139,7 +139,9 @@ body {
 }
 
 #daily-max:disabled,
-#daily-max.is-locked {
+#daily-max.is-locked,
+#wind-down:disabled,
+#wind-down.is-locked {
   cursor: not-allowed;
   color: rgba(17, 17, 17, 0.45);
   background: rgba(17, 17, 17, 0.04);

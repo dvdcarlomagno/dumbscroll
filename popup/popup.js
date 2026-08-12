@@ -69,6 +69,23 @@ function updateLimitControl(total, dailyMax) {
   }
 }
 
+function updateWindDownControl(windDownTime, now = new Date()) {
+  const input = document.getElementById("wind-down");
+  const help = document.getElementById("wind-down-help");
+  const locked = !DumbscrollWindDown.canChangeWindDownTime(now, windDownTime);
+  const reason = DumbscrollWindDown.windDownLockReason(now, windDownTime);
+
+  input.disabled = locked;
+  input.classList.toggle("is-locked", locked);
+
+  if (locked && reason) {
+    help.textContent = reason;
+  } else {
+    help.textContent =
+      "After this time, the yellow bar fills the screen until midnight — no matter how many posts you've seen. You can change the time only before wind down starts.";
+  }
+}
+
 async function buildSettingsPayload({ dailyMax, windDownTime }) {
   const settings = await readStoredSettings();
   return {
@@ -88,6 +105,7 @@ async function loadSettings() {
   document.getElementById("daily-max").value = String(dailyMax);
   document.getElementById("wind-down").value = windDownTime;
   updateLimitControl(total, dailyMax);
+  updateWindDownControl(windDownTime);
 }
 
 async function saveDailyMax(showStatus = true) {
@@ -114,12 +132,18 @@ async function saveDailyMax(showStatus = true) {
   const dailyMax = normalizeMax(input.value);
   input.value = String(dailyMax);
 
+  const storedWindDown = normalizeWindDownTime(settings?.windDownTime);
+  const windDownTime = DumbscrollWindDown.canChangeWindDownTime(new Date(), storedWindDown)
+    ? document.getElementById("wind-down").value
+    : storedWindDown;
+
   const payload = await buildSettingsPayload({
     dailyMax,
-    windDownTime: document.getElementById("wind-down").value,
+    windDownTime,
   });
   await chrome.storage.local.set({ [SETTINGS_KEY]: payload });
   updateLimitControl(total, dailyMax);
+  updateWindDownControl(normalizeWindDownTime(windDownTime));
 
   if (showStatus) {
     const status = document.getElementById("max-status");
@@ -132,6 +156,24 @@ async function saveDailyMax(showStatus = true) {
 
 async function saveWindDown(showStatus = true) {
   const input = document.getElementById("wind-down");
+  const settings = await readStoredSettings();
+  const currentWindDownTime = normalizeWindDownTime(settings?.windDownTime);
+
+  if (!DumbscrollWindDown.canChangeWindDownTime(new Date(), currentWindDownTime)) {
+    input.value = currentWindDownTime;
+    updateWindDownControl(currentWindDownTime);
+
+    if (showStatus) {
+      const status = document.getElementById("wind-down-status");
+      status.textContent = "Locked";
+      setTimeout(() => {
+        status.textContent = "";
+      }, 1200);
+    }
+
+    return;
+  }
+
   const windDownTime = normalizeWindDownTime(input.value);
   input.value = windDownTime;
 
@@ -140,6 +182,7 @@ async function saveWindDown(showStatus = true) {
     windDownTime,
   });
   await chrome.storage.local.set({ [SETTINGS_KEY]: payload });
+  updateWindDownControl(windDownTime);
 
   if (showStatus) {
     const status = document.getElementById("wind-down-status");
@@ -188,6 +231,7 @@ async function render() {
   }
 
   updateLimitControl(total, dailyMax);
+  updateWindDownControl(windDownTime);
 }
 
 const maxInput = document.getElementById("daily-max");

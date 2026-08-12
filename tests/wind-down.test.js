@@ -7,6 +7,8 @@ const {
   normalizeWindDownTime,
   isWindDownActive,
   msUntilNextWindDownTransition,
+  canChangeWindDownTime,
+  windDownLockReason,
 } = require("../content/shared/wind-down.js");
 
 function atLocal(year, monthIndex, day, hours, minutes, seconds = 0) {
@@ -59,4 +61,20 @@ test("schedules transition at next midnight when already active", () => {
   const now = atLocal(2026, 7, 11, 20, 0);
   const ms = msUntilNextWindDownTransition(now, "19:00");
   assert.equal(ms, 4 * 60 * 60 * 1000);
+});
+
+test("allows changing wind-down time before it starts", () => {
+  assert.equal(canChangeWindDownTime(atLocal(2026, 7, 11, 18, 59), "19:00"), true);
+  assert.equal(windDownLockReason(atLocal(2026, 7, 11, 18, 59), "19:00"), null);
+});
+
+test("locks wind-down time after it starts until next day", () => {
+  assert.equal(canChangeWindDownTime(atLocal(2026, 7, 11, 19, 0), "19:00"), false);
+  assert.equal(canChangeWindDownTime(atLocal(2026, 7, 11, 23, 59), "19:00"), false);
+  assert.match(windDownLockReason(atLocal(2026, 7, 11, 19, 0), "19:00"), /tomorrow/i);
+});
+
+test("unlocks wind-down time the next day before wind down", () => {
+  assert.equal(canChangeWindDownTime(atLocal(2026, 7, 12, 0, 0), "19:00"), true);
+  assert.equal(windDownLockReason(atLocal(2026, 7, 12, 0, 0), "19:00"), null);
 });
