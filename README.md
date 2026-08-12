@@ -12,21 +12,21 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 - **YouTube** — counts each distinct video when playback starts
 - **Combined daily total** across all three platforms
 - **Growing yellow bar** — starts as a 1px line at the top; height scales linearly with today's total vs your max (100% = full screen); black eye icon + count centered on the bar
-- **Wind down** — after a set local time (default 7:00 PM), the bar fills the screen until midnight regardless of post count, and shows **Wind down** instead of the number
+- **Wind down** — after a set local time (default 7:00 PM), the bar fills the screen until midnight regardless of post count, and shows **Wind down** instead of the number; the time can only be changed before wind down starts
 - **Popup** — per-platform breakdown, total vs max, editable daily limit (default 100) and wind-down time
 - **Local-only** — `chrome.storage.local`, resets at local midnight
 
 ## Install (load unpacked)
 
 **Download the latest release zip:**  
-[dumbscroll-v2.0.0.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.0.0.zip)
+[dumbscroll-v2.0.1.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.0.1.zip)
 
 Unzip, then:
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the unzipped `dumbscroll-2.0.0` folder
+4. Select the unzipped `dumbscroll-2.0.1` folder
 5. After updates, click **Reload** and refresh open tabs
 
 Or clone from source:

@@ -8,6 +8,7 @@
 - Clears at local midnight via the same calendar-day boundary as daily counts (`toLocaleDateString("en-CA")`).
 - Overlay schedules a timeout to the next wind-down transition (activate at time, or clear at midnight) so the fill appears without a storage event.
 - Popup save must merge both settings fields; writing only `dailyMax` would wipe `windDownTime`.
+- Once wind down is active for the day, `canChangeWindDownTime` is false and the popup input is disabled until local midnight (mirrors daily-max lock UX).
 
 ## Patterns
 
