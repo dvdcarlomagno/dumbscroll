@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 global.DumbscrollWindDown = require("../content/shared/wind-down.js");
+global.DumbscrollOverlayMode = require("../content/shared/overlay-mode.js");
 const { resolveOverlayView } = require("../content/shared/overlay.js");
 const { WIND_DOWN_LABEL } = global.DumbscrollWindDown;
 
@@ -18,7 +19,9 @@ test("e2e: before wind-down, low count scales progress and shows the count", () 
   });
 
   assert.equal(view.windDown, false);
+  assert.equal(view.overlayMode, "grow");
   assert.equal(view.heightProgress, 0.25);
+  assert.equal(view.opacity, 1);
   assert.equal(view.atMax, false);
   assert.equal(view.label, "25");
 });

@@ -46,18 +46,45 @@
         while below 50% of today's usage.
       </p>
 
+      <p class="settings-label-spaced" id="overlay-mode-label">Yellow overlay</p>
+      <div
+        class="overlay-mode-options"
+        role="radiogroup"
+        aria-labelledby="overlay-mode-label"
+      >
+        <label class="overlay-mode-option">
+          <input type="radio" name="overlay-mode" value="grow" checked />
+          <span>
+            <strong>Growing bar</strong>
+            Height scales with posts you've seen
+          </span>
+        </label>
+        <label class="overlay-mode-option">
+          <input type="radio" name="overlay-mode" value="fade" />
+          <span>
+            <strong>Fading screen</strong>
+            Full screen; fades as you see more posts
+          </span>
+        </label>
+      </div>
+      <p id="overlay-mode-help" class="settings-help">
+        Choose how the yellow overlay shows today's usage.
+      </p>
+      <span id="overlay-mode-status" class="max-status" aria-live="polite"></span>
+
       <label for="wind-down" class="settings-label-spaced">Wind down</label>
       <div class="settings-row">
         <input id="wind-down" type="time" />
         <span id="wind-down-status" class="max-status" aria-live="polite"></span>
       </div>
       <p id="wind-down-help" class="settings-help">
-        After this time, the yellow bar fills the screen until midnight — no matter how many posts
-        you've seen. You can change the time only before wind down starts.
+        After this time, the yellow overlay covers the screen until midnight — no matter how many
+        posts you've seen. You can change the time only before wind down starts.
       </p>
     </section>
 
     <script src="../content/shared/wind-down.js"></script>
+    <script src="../content/shared/overlay-mode.js"></script>
     <script src="../content/shared/limit-lock.js"></script>
     <script src="popup.js"></script>
   </body>

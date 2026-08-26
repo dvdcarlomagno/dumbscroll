@@ -1,4 +1,4 @@
-/* global DumbscrollStorage, DumbscrollWindDown */
+/* global DumbscrollStorage, DumbscrollWindDown, DumbscrollOverlayMode */
 const DumbscrollBrand = {
   yellowDeep: "#EDB100",
   yellowMid: "#FFD100",
@@ -27,10 +27,27 @@ const DumbscrollOverlay = (() => {
     return Math.min(Math.max(count / max, 0), 1);
   }
 
-  function resolveOverlayView({ count, max, windDownTime, now = new Date() }) {
+  function normalizeMode(overlayMode) {
+    if (typeof DumbscrollOverlayMode !== "undefined") {
+      return DumbscrollOverlayMode.normalizeOverlayMode(overlayMode);
+    }
+
+    return overlayMode === "fade" ? "fade" : "grow";
+  }
+
+  function resolveOverlayView({
+    count,
+    max,
+    windDownTime,
+    overlayMode,
+    now = new Date(),
+  }) {
     const windDown = DumbscrollWindDown.isWindDownActive(now, windDownTime);
     const countProgress = progressFor(count, max);
-    const heightProgress = windDown ? 1 : countProgress;
+    const mode = normalizeMode(overlayMode);
+    const fade = mode === "fade";
+    const heightProgress = fade || windDown ? 1 : countProgress;
+    const opacity = windDown ? 1 : fade ? 1 - countProgress : 1;
     const atMax = windDown || count >= max;
     const label = windDown
       ? DumbscrollWindDown.WIND_DOWN_LABEL
@@ -38,18 +55,25 @@ const DumbscrollOverlay = (() => {
 
     return {
       windDown,
+      overlayMode: mode,
       heightProgress,
+      opacity,
       atMax,
       label,
       count,
       max,
+      countProgress,
     };
   }
 
-  function heightForProgress(progress, count, windDown) {
+  function heightForProgress(progress, count, { windDown, fade }) {
     const viewportHeight = window.innerHeight;
 
-    if (!windDown && count <= 0) {
+    if (fade || windDown) {
+      return Math.max(MIN_HEIGHT_PX, viewportHeight);
+    }
+
+    if (count <= 0) {
       return MIN_HEIGHT_PX;
     }
 
@@ -90,16 +114,25 @@ const DumbscrollOverlay = (() => {
   function applyLayout(view) {
     const overlay = ensure();
     const viewportHeight = window.innerHeight;
-    const heightPx = heightForProgress(view.heightProgress, view.count, view.windDown);
+    const fade = view.overlayMode === "fade";
+    const heightPx = heightForProgress(view.heightProgress, view.count, {
+      windDown: view.windDown,
+      fade,
+    });
+    const fontProgress = fade || view.windDown ? 1 : view.heightProgress;
 
     valueEl.textContent = view.label;
     overlay.dataset.max = String(view.max);
     overlay.dataset.progress = String(view.heightProgress);
+    overlay.dataset.opacity = String(view.opacity);
+    overlay.dataset.overlayMode = view.overlayMode;
     overlay.dataset.windDown = view.windDown ? "true" : "false";
     overlay.style.height = `${heightPx}px`;
-    overlay.style.fontSize = `${fontSizeFor(view.heightProgress, viewportHeight)}px`;
+    overlay.style.fontSize = `${fontSizeFor(fontProgress, viewportHeight)}px`;
+    overlay.style.setProperty("--dumbscroll-fade-opacity", String(view.opacity));
+    overlay.classList.toggle("overlay-fade", fade);
     overlay.classList.toggle("at-max", view.atMax);
-    overlay.classList.toggle("has-content", heightPx >= 56 || view.windDown);
+    overlay.classList.toggle("has-content", fade || heightPx >= 56 || view.windDown);
     overlay.classList.toggle("wind-down", view.windDown);
     overlay.setAttribute(
       "aria-label",
@@ -133,13 +166,14 @@ const DumbscrollOverlay = (() => {
 
   async function refresh() {
     const now = new Date();
-    const [count, max, windDownTime] = await Promise.all([
+    const [count, max, windDownTime, overlayMode] = await Promise.all([
       DumbscrollStorage.getCombinedTotal(),
       DumbscrollStorage.getDailyMax(),
       DumbscrollStorage.getWindDownTime(),
+      DumbscrollStorage.getOverlayMode(),
     ]);
 
-    const view = resolveOverlayView({ count, max, windDownTime, now });
+    const view = resolveOverlayView({ count, max, windDownTime, overlayMode, now });
     applyLayout(view);
     scheduleWindDownRefresh(windDownTime, now);
   }

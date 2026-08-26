@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dumbscroll",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Track how many social posts and videos you scroll each day — with a yellow counter that grows until you look away.",
   "permissions": ["storage"],
   "host_permissions": [
@@ -36,6 +36,7 @@
       "matches": ["https://www.linkedin.com/*", "https://linkedin.com/*"],
       "js": [
         "content/shared/wind-down.js",
+        "content/shared/overlay-mode.js",
         "content/shared/storage.js",
         "content/shared/overlay.js",
         "content/shared/post-tracker.js",
@@ -48,6 +49,7 @@
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": [
         "content/shared/wind-down.js",
+        "content/shared/overlay-mode.js",
         "content/shared/storage.js",
         "content/shared/overlay.js",
         "content/shared/post-tracker.js",
@@ -60,6 +62,7 @@
       "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
       "js": [
         "content/shared/wind-down.js",
+        "content/shared/overlay-mode.js",
         "content/shared/storage.js",
         "content/shared/overlay.js",
         "content/youtube.js"

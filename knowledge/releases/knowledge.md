@@ -2,7 +2,7 @@
 
 ## Facts
 
-- Extension version lives in `manifest.json` (`version` field). Current: `2.0.1`.
+- Extension version lives in `manifest.json` (`version` field). Current: `2.1.0`.
 - GitHub serves source archives for any tag at:
   - `https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/<tag>.zip`
   - Unzipped folder name is typically `dumbscroll-<semver>` (without the leading `v`).
@@ -10,6 +10,7 @@
 - Tag `v1.3.3` points at commit `2c22cba` (main at time of tagging).
 - `2.0.0` is a major bump for the Wind down setting (evening full-screen block).
 - `2.0.1` locks the wind-down time after it starts (until next day).
+- `2.1.0` adds the overlay style setting (growing bar vs fading full-screen).
 
 ## Patterns
 

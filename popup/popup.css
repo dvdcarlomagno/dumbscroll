@@ -152,6 +152,52 @@ body {
   margin-top: 14px;
 }
 
+.overlay-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.overlay-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.overlay-mode-option:has(input:checked) {
+  border-color: rgba(17, 17, 17, 0.28);
+  background: #fff8d6;
+}
+
+.overlay-mode-option input {
+  margin: 3px 0 0;
+  accent-color: var(--yellow-deep);
+}
+
+.overlay-mode-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: rgba(17, 17, 17, 0.58);
+}
+
+.overlay-mode-option strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .max-status {
   font-size: 12px;
   font-weight: 600;

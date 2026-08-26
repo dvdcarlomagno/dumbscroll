@@ -1,4 +1,4 @@
-/* global chrome, DumbscrollWindDown */
+/* global chrome, DumbscrollWindDown, DumbscrollOverlayMode */
 const DumbscrollStorage = (() => {
   const PLATFORMS = ["linkedin", "x", "youtube"];
   const DEFAULT_DAILY_MAX = 100;
@@ -6,6 +6,10 @@ const DumbscrollStorage = (() => {
     typeof DumbscrollWindDown !== "undefined"
       ? DumbscrollWindDown.DEFAULT_WIND_DOWN_TIME
       : "19:00";
+  const DEFAULT_OVERLAY_MODE =
+    typeof DumbscrollOverlayMode !== "undefined"
+      ? DumbscrollOverlayMode.DEFAULT_OVERLAY_MODE
+      : "grow";
   const LEGACY_STATE_KEY = "doomscroll";
   const LEGACY_SETTINGS_KEY = "doomscrollSettings";
   const STATE_KEY = "dumbscroll";
@@ -63,6 +67,14 @@ const DumbscrollStorage = (() => {
     return `${String(Number(match[1])).padStart(2, "0")}:${String(Number(match[2])).padStart(2, "0")}`;
   }
 
+  function normalizeOverlayMode(value) {
+    if (typeof DumbscrollOverlayMode !== "undefined") {
+      return DumbscrollOverlayMode.normalizeOverlayMode(value);
+    }
+
+    return value === "fade" ? "fade" : DEFAULT_OVERLAY_MODE;
+  }
+
   async function getSettings() {
     await migrateLegacyStorage();
     const { [SETTINGS_KEY]: settings } = await chrome.storage.local.get(SETTINGS_KEY);
@@ -74,6 +86,7 @@ const DumbscrollStorage = (() => {
           ? Math.round(dailyMax)
           : DEFAULT_DAILY_MAX,
       windDownTime: normalizeWindDownTime(settings?.windDownTime),
+      overlayMode: normalizeOverlayMode(settings?.overlayMode),
     };
   }
 
@@ -83,6 +96,10 @@ const DumbscrollStorage = (() => {
 
   async function getWindDownTime() {
     return (await getSettings()).windDownTime;
+  }
+
+  async function getOverlayMode() {
+    return (await getSettings()).overlayMode;
   }
 
   async function getState() {
@@ -136,11 +153,13 @@ const DumbscrollStorage = (() => {
     getSettings,
     getDailyMax,
     getWindDownTime,
+    getOverlayMode,
     increment,
     todayKey,
     PLATFORMS,
     DEFAULT_DAILY_MAX,
     DEFAULT_WIND_DOWN_TIME,
+    DEFAULT_OVERLAY_MODE,
   };
 })();
 
