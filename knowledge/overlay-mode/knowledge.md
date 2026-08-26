@@ -5,7 +5,7 @@
 - Settings key `dumbscrollSettings` shape: `{ dailyMax, windDownTime, overlayMode }`.
 - `overlayMode` is `"grow"` (default) or `"fade"`.
 - **Grow** keeps the original bar: height scales with `count / dailyMax`; opacity stays `1`.
-- **Fade** covers the full viewport. Yellow opacity equals posts seen vs max (`count/max`): 0 posts → opacity `0`, at the limit → opacity `1`. The count/icon sit on a yellow chip so they stay readable at mid-opacity.
+- **Fade** covers the full viewport. The yellow fill and the count/icon share one opacity: `count/max` (0 posts → `0`, at the limit → `1`). There is no separate chip behind the number.
 - Missing or invalid `overlayMode` falls back to `"grow"`.
 - Wind down still forces a full-screen, fully opaque overlay and the `Wind down` label in both modes.
 - Overlay style is a display preference and is not locked by usage or wind-down time.

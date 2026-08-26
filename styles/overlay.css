@@ -24,35 +24,12 @@
     var(--dumbscroll-yellow-deep) 100%
   );
   box-shadow: 0 8px 24px rgba(17, 17, 17, 0.14);
-  transition: height 0.28s ease, box-shadow 0.28s ease;
+  transition: height 0.28s ease, box-shadow 0.28s ease, opacity 0.28s ease;
 }
 
 #dumbscroll-counter-overlay.overlay-fade {
-  background: transparent;
   box-shadow: none;
-}
-
-#dumbscroll-counter-overlay.overlay-fade::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    var(--dumbscroll-yellow-light) 0%,
-    var(--dumbscroll-yellow-mid) 42%,
-    var(--dumbscroll-yellow-deep) 100%
-  );
   opacity: var(--dumbscroll-fade-opacity, 1);
-  transition: opacity 0.28s ease;
-}
-
-#dumbscroll-counter-overlay.overlay-fade .dumbscroll-counter-content {
-  position: relative;
-  z-index: 1;
-  padding: 0.12em 0.35em;
-  border-radius: 0.4em;
-  background: rgba(255, 237, 102, 0.78);
 }
 
 #dumbscroll-counter-overlay .dumbscroll-counter-content {
