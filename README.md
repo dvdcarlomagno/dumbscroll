@@ -11,7 +11,7 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 - **LinkedIn & X** — counts each post once when ≥25% is visible, or any part stays visible for 800ms
 - **YouTube** — counts each distinct video when playback starts
 - **Combined daily total** across all three platforms
-- **Yellow overlay** — two styles: **Growing bar** (starts as a 1px line; height scales with today's total vs your max) or **Fading screen** (covers the page; opacity falls as you see more posts). Black eye icon + count stay centered.
+- **Yellow overlay** — two styles: **Growing bar** (starts as a 1px line; height scales with today's total vs your max) or **Fading screen** (covers the page; opacity matches today's total vs your max, 0% → 100%). Black eye icon + count stay centered.
 - **Wind down** — after a set local time (default 7:00 PM), the overlay covers the screen until midnight regardless of post count, and shows **Wind down** instead of the number; the time can only be changed before wind down starts
 - **Popup** — per-platform breakdown, total vs max, overlay style, editable daily limit (default 100) and wind-down time
 - **Local-only** — `chrome.storage.local`, resets at local midnight
@@ -19,14 +19,14 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 ## Install (load unpacked)
 
 **Download the latest release zip:**  
-[dumbscroll-v2.1.1.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.1.1.zip)
+[dumbscroll-v2.1.2.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.1.2.zip)
 
 Unzip, then:
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the unzipped `dumbscroll-2.1.1` folder
+4. Select the unzipped `dumbscroll-2.1.2` folder
 5. After updates, click **Reload** and refresh open tabs
 
 Or clone from source:
