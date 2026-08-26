@@ -47,7 +47,7 @@ const DumbscrollOverlay = (() => {
     const mode = normalizeMode(overlayMode);
     const fade = mode === "fade";
     const heightProgress = fade || windDown ? 1 : countProgress;
-    const opacity = windDown ? 1 : fade ? 1 - countProgress : 1;
+    const opacity = windDown ? 1 : fade ? countProgress : 1;
     const atMax = windDown || count >= max;
     const label = windDown
       ? DumbscrollWindDown.WIND_DOWN_LABEL
@@ -132,7 +132,10 @@ const DumbscrollOverlay = (() => {
     overlay.style.setProperty("--dumbscroll-fade-opacity", String(view.opacity));
     overlay.classList.toggle("overlay-fade", fade);
     overlay.classList.toggle("at-max", view.atMax);
-    overlay.classList.toggle("has-content", fade || heightPx >= 56 || view.windDown);
+    overlay.classList.toggle(
+      "has-content",
+      view.windDown || (fade && view.count > 0) || (!fade && heightPx >= 56)
+    );
     overlay.classList.toggle("wind-down", view.windDown);
     overlay.setAttribute(
       "aria-label",

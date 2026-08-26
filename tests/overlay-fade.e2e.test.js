@@ -10,7 +10,7 @@ function atLocal(year, monthIndex, day, hours, minutes) {
   return new Date(year, monthIndex, day, hours, minutes, 0, 0);
 }
 
-test("e2e: fade mode keeps full height and lowers opacity as posts increase", () => {
+test("e2e: fade mode keeps full height and raises opacity as posts increase", () => {
   const none = resolveOverlayView({
     count: 0,
     max: 100,
@@ -35,7 +35,7 @@ test("e2e: fade mode keeps full height and lowers opacity as posts increase", ()
 
   assert.equal(none.overlayMode, "fade");
   assert.equal(none.heightProgress, 1);
-  assert.equal(none.opacity, 1);
+  assert.equal(none.opacity, 0);
   assert.equal(none.label, "0");
 
   assert.equal(half.heightProgress, 1);
@@ -44,7 +44,7 @@ test("e2e: fade mode keeps full height and lowers opacity as posts increase", ()
   assert.equal(half.label, "50");
 
   assert.equal(full.heightProgress, 1);
-  assert.equal(full.opacity, 0);
+  assert.equal(full.opacity, 1);
   assert.equal(full.atMax, true);
   assert.equal(full.label, "100");
 });

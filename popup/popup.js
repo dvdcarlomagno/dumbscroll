@@ -79,7 +79,7 @@ function updateLimitControl(total, dailyMax) {
 function dailyMaxHelpText(overlayMode) {
   const fill =
     overlayMode === DumbscrollOverlayMode.FADE
-      ? "At this total, the yellow screen becomes fully transparent."
+      ? "At this total, the yellow screen is fully opaque."
       : "At this total, the yellow bar fills the full screen height.";
 
   return `${fill} You can change the limit only while below 50% of today's usage.`;
@@ -104,7 +104,7 @@ function updateWindDownControl(windDownTime, now = new Date()) {
 
 function overlayModeHelpText(overlayMode) {
   if (overlayMode === DumbscrollOverlayMode.FADE) {
-    return "The yellow screen covers the page. It becomes more transparent as you see more posts.";
+    return "The yellow screen covers the page. Opacity matches posts seen vs your daily max.";
   }
 
   return "The yellow bar starts as a thin line and grows with posts you've seen.";

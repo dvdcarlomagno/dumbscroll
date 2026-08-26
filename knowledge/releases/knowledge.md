@@ -2,7 +2,7 @@
 
 ## Facts
 
-- Extension version lives in `manifest.json` (`version` field). Current: `2.1.1`.
+- Extension version lives in `manifest.json` (`version` field). Current: `2.1.2`.
 - GitHub serves source archives for any tag at:
   - `https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/<tag>.zip`
   - Unzipped folder name is typically `dumbscroll-<semver>` (without the leading `v`).
@@ -12,6 +12,7 @@
 - `2.0.1` locks the wind-down time after it starts (until next day).
 - `2.1.0` adds the overlay style setting (growing bar vs fading full-screen).
 - `2.1.1` fixes the popup fade option snapping back to Growing bar after Save.
+- `2.1.2` inverts fade opacity so it matches posts seen vs max (`0` → `1`).
 
 ## Patterns
 
