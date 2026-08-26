@@ -19,14 +19,14 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 ## Install (load unpacked)
 
 **Download the latest release zip:**  
-[dumbscroll-v2.1.0.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.1.0.zip)
+[dumbscroll-v2.1.1.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.1.1.zip)
 
 Unzip, then:
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the unzipped `dumbscroll-2.1.0` folder
+4. Select the unzipped `dumbscroll-2.1.1` folder
 5. After updates, click **Reload** and refresh open tabs
 
 Or clone from source:

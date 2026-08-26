@@ -9,6 +9,8 @@
 - Missing or invalid `overlayMode` falls back to `"grow"`.
 - Wind down still forces a full-screen, fully opaque overlay and the `Wind down` label in both modes.
 - Overlay style is a display preference and is not locked by usage or wind-down time.
+- Popup radios are owned by the click handler and `loadSettings`. `render()` must not reset them from storage, or a stale read snaps Fade back to Growing bar after Save.
+- `saveOverlayMode` captures the clicked mode before any `await`. A `pendingOverlayMode` plus a load generation counter ignore in-flight startup reads.
 
 ## Patterns
 
