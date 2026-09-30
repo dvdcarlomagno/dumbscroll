@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dumbscroll",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Track how many social posts and videos you scroll each day, and blur AI slop, promoted posts, and bait on LinkedIn and X.",
   "permissions": ["storage"],
   "host_permissions": [

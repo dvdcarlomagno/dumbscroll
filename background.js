@@ -1,5 +1,27 @@
-/* global chrome, importScripts, DumbscrollClassifier */
+/* global chrome, importScripts, DumbscrollClassifier, DumbscrollFilterCore */
 importScripts("content/shared/filter-core.js", "background/classifier.js");
+
+// Optional, git-ignored: see config.local.example.js.
+try {
+  importScripts("config.local.js");
+} catch {
+  self.DUMBSCROLL_LOCAL_CONFIG = null;
+}
+
+async function seedLocalKey() {
+  const localKey = self.DUMBSCROLL_LOCAL_CONFIG?.openrouterApiKey?.trim();
+  if (!localKey) {
+    return;
+  }
+
+  const key = DumbscrollFilterCore.SETTINGS_KEY;
+  const { [key]: stored } = await chrome.storage.local.get(key);
+  if (!DumbscrollFilterCore.normalizeSettings(stored).apiKey) {
+    await chrome.storage.local.set({ [key]: { ...(stored ?? {}), apiKey: localKey } });
+  }
+}
+
+seedLocalKey();
 
 const classifier = DumbscrollClassifier.create({
   storage: chrome.storage.local,

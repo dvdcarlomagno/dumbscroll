@@ -1,7 +1,14 @@
 @font-face {
-  font-family: "Dumbscroll Gluten";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/gluten-latin.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Dumbscroll Inter";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/inter-latin.woff2") format("woff2");
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Dumbscroll Serif";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/source-serif-latin.woff2") format("woff2");
+  font-weight: 200 900;
   font-display: swap;
 }
 
@@ -51,11 +58,11 @@
   opacity: 0;
   transition: opacity 0.2s ease;
 
-  font-family: "Dumbscroll Gluten", "SF Pro Rounded", ui-rounded, sans-serif;
+  font-family: "Dumbscroll Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 800;
-  font-variation-settings: "slnt" 10;
+  font-feature-settings: "tnum" 1;
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
   color: var(--dumbscroll-ink);
   text-align: center;
 }
@@ -70,7 +77,6 @@
   justify-content: center;
   font-size: 0.82em;
   color: var(--dumbscroll-ink);
-  transform: rotate(-6deg);
 }
 
 #dumbscroll-counter-overlay .dumbscroll-counter-value {
@@ -90,49 +96,75 @@
 :has(> .dumbscroll-pill) {
   position: relative !important;
   overflow: hidden !important;
-  min-height: 72px;
+  min-height: 140px;
 }
 
-:has(> .dumbscroll-pill) > :not(.dumbscroll-pill) {
-  filter: blur(14px) saturate(0.6);
+:has(> .dumbscroll-pill) > :not(.dumbscroll-pill, .dumbscroll-pill-cost) {
+  filter: blur(10px) saturate(0.7);
+  opacity: 0.75;
   pointer-events: none !important;
   user-select: none !important;
 }
 
 .dumbscroll-pill {
   position: absolute;
-  top: 16px;
+  top: 24px;
   left: 50%;
   z-index: 5;
-  transform: translateX(-50%) rotate(-2deg);
-  display: inline-flex;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: min(320px, calc(100% - 32px));
+  padding: 14px 18px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 2px rgba(28, 27, 25, 0.06), 0 10px 30px rgba(28, 27, 25, 0.12);
+  color: #1c1b19;
+  text-align: left;
+}
+
+.dumbscroll-pill-label {
+  margin: 0;
+  font-family: "Dumbscroll Serif", "Iowan Old Style", Georgia, serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0;
+  color: #1c1b19;
+}
+
+.dumbscroll-pill-meta {
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 6px 6px 14px;
-  border-radius: 999px;
-  background: linear-gradient(145deg, #edb100, #ffd100 52%, #ffed66);
-  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
-  font-family: "Dumbscroll Gluten", "SF Pro Rounded", ui-rounded, sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  font-variation-settings: "slnt" 8;
-  line-height: 1;
-  color: #111111;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-family: "Dumbscroll Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.dumbscroll-pill-cost {
+  color: #8a857d;
+  font-feature-settings: "tnum" 1;
   white-space: nowrap;
 }
 
 .dumbscroll-pill-show {
   appearance: none;
   border: 0;
-  border-radius: 999px;
-  padding: 6px 12px;
-  background: #111111;
-  color: #ffd100;
+  padding: 0;
+  background: none;
+  color: #1c1b19;
   font: inherit;
-  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: #ffd100;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .dumbscroll-pill-show:hover {
-  background: #2a2a2a;
+  text-decoration-color: currentColor;
 }

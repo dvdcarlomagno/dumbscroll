@@ -99,11 +99,22 @@ const DumbscrollClassifier = (() => {
           throw error;
         }
 
-        return core.probabilitiesFromResponse(await response.json());
+        const body = await response.json();
+        return {
+          probabilities: core.probabilitiesFromResponse(body),
+          cost: core.costFromResponse(body),
+        };
       } finally {
         if (timer) {
           clearTimeout(timer);
         }
+      }
+    }
+
+    function recordSpend(day, cost) {
+      day.spend.calls += 1;
+      if (cost !== null) {
+        day.spend.usd += cost;
       }
     }
 
@@ -139,9 +150,9 @@ const DumbscrollClassifier = (() => {
         return { ...decision, revealed };
       }
 
-      const cached = day.cache[key]?.probabilities;
-      if (cached) {
-        return { ...core.decide(cached, settings), revealed, cached: true };
+      const cached = day.cache[key];
+      if (cached?.probabilities) {
+        return { ...core.decide(cached.probabilities, settings), cost: cached.cost ?? null, revealed, cached: true };
       }
 
       if (!settings.apiKey) {
@@ -154,14 +165,15 @@ const DumbscrollClassifier = (() => {
 
       if (!inFlight.has(key)) {
         const request = runLimited(() => callJev(settings, post))
-          .then(async (probabilities) => {
+          .then(async (result) => {
             await updateDay((next) => {
-              next.cache[key] = { ...(next.cache[key] ?? {}), probabilities };
+              next.cache[key] = { ...(next.cache[key] ?? {}), ...result };
+              recordSpend(next, result.cost);
               if (!next.status?.ok) {
                 next.status = { ok: true, message: "Connected", at: now().toISOString() };
               }
             });
-            return probabilities;
+            return result;
           })
           .finally(() => {
             inFlight.delete(key);
@@ -170,10 +182,10 @@ const DumbscrollClassifier = (() => {
       }
 
       try {
-        const probabilities = await inFlight.get(key);
+        const { probabilities, cost } = await inFlight.get(key);
         const decision = core.decide(probabilities, settings);
         await recordFlag(key, decision);
-        return { ...decision, revealed };
+        return { ...decision, cost, revealed };
       } catch (error) {
         const message = errorMessage(error);
         await setStatus({ ok: false, message });
@@ -198,11 +210,12 @@ const DumbscrollClassifier = (() => {
       }
 
       try {
-        await callJev(settings, {
+        const { cost } = await callJev(settings, {
           platform: "test",
           author: "Dumbscroll",
           text: "Agree? Comment YES if you think consistency beats talent. 🚀 Let that sink in.",
         });
+        await updateDay((day) => recordSpend(day, cost));
         await setStatus({ ok: true, message: "Connected" });
         return { ok: true, message: "Connected" };
       } catch (error) {

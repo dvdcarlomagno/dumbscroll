@@ -173,9 +173,15 @@
       : el.innerText;
     const author = el.querySelector(AUTHOR_SELECTOR)?.innerText ?? "";
 
+    const media = DumbscrollPostFilter.describeMedia(el, {
+      imageSelector: ".update-components-image img, .feed-shared-image img",
+      videoSelector: ".update-components-linkedin-video, video",
+    });
+
     return {
       text,
       author,
+      media,
       isAdLabel: DumbscrollPostFilter.hasExactLabel(el, AD_LABEL),
     };
   }

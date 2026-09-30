@@ -2,6 +2,7 @@
 const DumbscrollPostFilter = (() => {
   const PRELOAD_MARGIN = "1500px 0px";
   const PILL_CLASS = "dumbscroll-pill";
+  const COST_CLASS = "dumbscroll-pill-cost";
   const MAX_TEXT_NODES = 400;
 
   function hasExactLabel(root, pattern) {
@@ -21,6 +22,21 @@ const DumbscrollPostFilter = (() => {
     return false;
   }
 
+  // Default alt text ("Image", "Photo") says nothing about the picture.
+  const GENERIC_ALT = /^(image|photo|picture|gif|embedded video|no alternative text description.*)$/i;
+
+  function describeMedia(el, { imageSelector, videoSelector }) {
+    const images = [...el.querySelectorAll(imageSelector)];
+    const alt = images
+      .map((img) => (img.getAttribute("alt") ?? "").trim())
+      .filter((text) => text && !GENERIC_ALT.test(text));
+    return {
+      images: images.length,
+      videos: el.querySelectorAll(videoSelector).length,
+      alt,
+    };
+  }
+
   function create({ platform, collectPosts, getPostId, extract }) {
     const core = DumbscrollFilterCore;
     const states = new WeakMap();
@@ -29,7 +45,7 @@ const DumbscrollPostFilter = (() => {
     let settings = core.normalizeSettings(null);
 
     function removePill(el) {
-      el.querySelectorAll(`:scope > .${PILL_CLASS}`).forEach((pill) => pill.remove());
+      el.querySelectorAll(`:scope > .${PILL_CLASS}, :scope > .${COST_CLASS}`).forEach((node) => node.remove());
     }
 
     function unfilter(el) {
@@ -47,14 +63,23 @@ const DumbscrollPostFilter = (() => {
       const pill = document.createElement("div");
       pill.className = PILL_CLASS;
 
-      const label = document.createElement("span");
+      const label = document.createElement("p");
       label.className = `${PILL_CLASS}-label`;
-      label.textContent = core.pillText(decision);
+      label.title = core.pillText(decision);
+      label.textContent = core.pillSentence(decision);
+
+      const meta = document.createElement("div");
+      meta.className = `${PILL_CLASS}-meta`;
+
+      const cost = document.createElement("span");
+      cost.className = COST_CLASS;
+      const costText = core.costText(decision);
+      cost.textContent = costText ? `This check cost ${costText}` : "Checked on this device, no cost";
 
       const button = document.createElement("button");
       button.type = "button";
       button.className = `${PILL_CLASS}-show`;
-      button.textContent = "Show";
+      button.textContent = "Show anyway";
       button.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -63,7 +88,8 @@ const DumbscrollPostFilter = (() => {
         send({ type: "dumbscroll:reveal", post: { platform, id } });
       });
 
-      pill.append(label, button);
+      meta.append(cost, button);
+      pill.append(label, meta);
       el.prepend(pill);
     }
 
@@ -220,5 +246,5 @@ const DumbscrollPostFilter = (() => {
     return { init, scan };
   }
 
-  return { create, hasExactLabel, PILL_CLASS };
+  return { create, hasExactLabel, describeMedia, PILL_CLASS };
 })();

@@ -31,7 +31,11 @@
       .map((node) => node.innerText)
       .join("\n");
     const author = el.querySelector('[data-testid="User-Name"]')?.innerText ?? "";
-    return { text, author, isAdLabel: DumbscrollPostFilter.hasExactLabel(el, AD_LABEL) };
+    const media = DumbscrollPostFilter.describeMedia(el, {
+      imageSelector: '[data-testid="tweetPhoto"] img',
+      videoSelector: '[data-testid="videoPlayer"]',
+    });
+    return { text, author, media, isAdLabel: DumbscrollPostFilter.hasExactLabel(el, AD_LABEL) };
   }
 
   const tracker = DoomscrollPostTracker.create({

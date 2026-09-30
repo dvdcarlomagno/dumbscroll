@@ -15,14 +15,11 @@ function todayKey() {
   return new Date().toLocaleDateString("en-CA");
 }
 
-function formatDateLabel(isoDate) {
-  const [year, month, day] = isoDate.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+function formatDateLabel(now = new Date()) {
+  const hour = now.getHours();
+  const part =
+    hour < 5 ? "night" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
+  return `${now.toLocaleDateString(undefined, { weekday: "long" })} ${part}`;
 }
 
 function normalizeMax(value) {
@@ -69,22 +66,7 @@ function updateLimitControl(total, dailyMax) {
   input.disabled = locked;
   input.classList.toggle("is-locked", locked);
 
-  if (locked && reason) {
-    help.textContent = reason;
-  } else {
-    help.textContent = dailyMaxHelpText(readSelectedOverlayMode());
-  }
-}
-
-function dailyMaxHelpText(overlayMode) {
-  const fills = {
-    [DumbscrollOverlayMode.FADE]: "At this total, the yellow screen is fully opaque.",
-    [DumbscrollOverlayMode.FILTER]:
-      "In AI filter mode the yellow overlay stays off, but today's total still counts toward this max.",
-  };
-  const fill = fills[overlayMode] ?? "At this total, the yellow bar fills the full screen height.";
-
-  return `${fill} You can change the limit only while below 50% of today's usage.`;
+  help.textContent = locked && reason ? reason : "";
 }
 
 function updateWindDownControl(windDownTime, now = new Date()) {
@@ -106,21 +88,20 @@ function updateWindDownControl(windDownTime, now = new Date()) {
   } else if (startsNow) {
     help.textContent = `${pending} has already passed today, so wind down would start as soon as you save.`;
   } else {
-    help.textContent =
-      "After this time, the yellow overlay covers the screen until midnight — no matter how many posts you've seen. You can change the time only before wind down starts.";
+    help.textContent = "";
   }
 }
 
 function overlayModeHelpText(overlayMode) {
   if (overlayMode === DumbscrollOverlayMode.FADE) {
-    return "The yellow screen covers the page. Opacity matches posts seen vs your daily max.";
+    return "A yellow veil darkens the page as you get closer to your limit.";
   }
 
   if (overlayMode === DumbscrollOverlayMode.FILTER) {
-    return "No overlay. Jev blurs AI slop, promoted posts, and bait on LinkedIn and X as you scroll.";
+    return "No veil. Jev hides the posts you pick below as you scroll LinkedIn and X.";
   }
 
-  return "The yellow bar starts as a thin line and grows with posts you've seen.";
+  return "A yellow bar grows down from the top of the page as you scroll.";
 }
 
 function readSelectedOverlayMode() {
@@ -144,6 +125,7 @@ function updateOverlayModeControl(overlayMode) {
   if (filterPanel) {
     filterPanel.hidden = mode !== DumbscrollOverlayMode.FILTER;
   }
+  renderStory();
 }
 
 function overlayModeFromStorage(storedMode) {
@@ -197,7 +179,6 @@ function setLimitsDirty(dirty) {
   if (cancelButton) {
     cancelButton.hidden = !dirty;
   }
-  document.getElementById("limits-summary")?.classList.toggle("is-unsaved", dirty);
 }
 
 function flashStatus(id, text) {
@@ -269,20 +250,13 @@ async function render() {
   const dailyMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
   const windDownTime = normalizeWindDownTime(settings?.windDownTime);
 
-  document.getElementById("date-label").textContent = `Today · ${formatDateLabel(today)}`;
-  document.getElementById("count-linkedin").textContent = counts.linkedin;
-  document.getElementById("count-x").textContent = counts.x;
-  document.getElementById("count-youtube").textContent = counts.youtube;
-  document.getElementById("count-total").textContent = String(total);
-  setText("max-label", String(dailyMax));
-  setText("limits-summary", `${dailyMax} posts · ${windDownTime}`);
-
-  const meterFill = document.getElementById("meter-fill");
-  if (meterFill) {
-    meterFill.style.width = `${Math.min(total / dailyMax, 1) * 100}%`;
-  }
-
+  setText("date-label", formatDateLabel());
+  storyState = { ...storyState, counts, total, dailyMax, windDownTime };
   renderFilterDay(DumbscrollFilterCore.normalizeDay(stored[DumbscrollFilterCore.DAY_KEY], today));
+  setText("count-linkedin", String(counts.linkedin));
+  setText("count-x", String(counts.x));
+  setText("count-youtube", String(counts.youtube));
+  setText("count-total", String(total));
 
   if (!limitsDirty) {
     document.getElementById("daily-max").value = String(dailyMax);
@@ -346,9 +320,7 @@ function renderFilterStatus() {
 
   let text = "";
   let tone = "";
-  if (!filterSettings.apiKey) {
-    text = "Add your OpenRouter API key to start filtering. Promoted/Ad labels work without it.";
-  } else if (lastFilterStatus) {
+  if (filterSettings.apiKey && lastFilterStatus) {
     text = lastFilterStatus.message;
     tone = lastFilterStatus.ok ? "is-ok" : "is-error";
   }
@@ -360,14 +332,225 @@ function renderFilterStatus() {
 
 function renderFilterDay(day) {
   lastFilterStatus = day.status;
-  let total = 0;
   DumbscrollFilterCore.CATEGORY_IDS.forEach((id) => {
     const count = day.blocked[id] ?? 0;
-    total += count;
-    setText(`blocked-${id}`, String(count));
+    setText(`blocked-${id}`, count ? String(count) : "");
   });
-  setText("blocked-total", String(total));
+  storyState = { ...storyState, day };
   renderFilterStatus();
+  renderStory();
+}
+
+let storyState = {
+  counts: { linkedin: 0, x: 0, youtube: 0 },
+  total: 0,
+  dailyMax: DEFAULT_DAILY_MAX,
+  windDownTime: DEFAULT_WIND_DOWN_TIME,
+  day: null,
+};
+
+const PLATFORMS = ["linkedin", "x", "youtube"];
+const MOSTLY = {
+  ai_slop: "AI slop",
+  promoted: "ads",
+  engagement_bait: "engagement bait",
+  humblebrag: "humblebrags",
+  ragebait: "rage bait",
+  meme: "memes",
+  scam: "scams",
+};
+
+function el(tag, props = {}, children = []) {
+  const node = document.createElement(tag);
+  Object.assign(node, props);
+  node.append(...children);
+  return node;
+}
+
+function plural(count, word) {
+  return `${count} ${count === 1 ? word : `${word}s`}`;
+}
+
+function shareOfLimit(ratio) {
+  const steps = [
+    [0.1, "barely any"],
+    [0.2, "about a fifth"],
+    [0.3, "about a quarter"],
+    [0.42, "about a third"],
+    [0.58, "about half"],
+    [0.72, "about two thirds"],
+    [0.88, "about three quarters"],
+  ];
+  return steps.find(([max]) => ratio < max)?.[1] ?? "nearly all";
+}
+
+function platformMark(platform, count) {
+  const logo = document.querySelector(`#platform-logos`)?.content.querySelector(`[data-platform="${platform}"]`);
+  const children = [];
+  if (logo) {
+    children.push(logo.cloneNode(true));
+  }
+  if (count !== undefined) {
+    children.push(el("span", { id: `count-${platform}`, textContent: String(count) }));
+  }
+  return el("span", { className: "plat" }, children);
+}
+
+function listPhrase(nodes) {
+  const out = [];
+  nodes.forEach((node, index) => {
+    if (index > 0) {
+      out.push(index === nodes.length - 1 ? " and " : ", ");
+    }
+    out.push(node);
+  });
+  return out;
+}
+
+function renderLead({ total, dailyMax, windDownActive }) {
+  const posts = el("em", {}, [el("span", { id: "count-total", textContent: String(total) }), total === 1 ? " post" : " posts"]);
+
+  if (windDownActive) {
+    return ["The feed is closed for tonight. You saw ", posts, " today."];
+  }
+  if (total === 0) {
+    return ["A clean slate: ", posts, " so far today."];
+  }
+  if (total >= dailyMax) {
+    return ["You've seen ", posts, ` today, past your limit of ${dailyMax}.`];
+  }
+  return ["You've seen ", posts, ` today, ${shareOfLimit(total / dailyMax)} of your limit.`];
+}
+
+function renderPlatforms(counts) {
+  const seen = PLATFORMS.filter((platform) => counts[platform] > 0).sort(
+    (a, b) => counts[b] - counts[a]
+  );
+
+  if (seen.length === 0) {
+    return ["Counting ", ...listPhrase(PLATFORMS.map((platform) => platformMark(platform))), "."];
+  }
+  if (seen.length === 1) {
+    return ["All of it on ", platformMark(seen[0], counts[seen[0]]), "."];
+  }
+
+  const [first, ...rest] = seen;
+  return [
+    "Mostly ",
+    platformMark(first, counts[first]),
+    ", then ",
+    ...listPhrase(rest.map((platform) => platformMark(platform, counts[platform]))),
+    ".",
+  ];
+}
+
+function renderFilterLine(day) {
+  if (!filterSettings.apiKey) {
+    return ["Jev needs an OpenRouter key before it can hide anything. Posts marked as ads are still hidden."];
+  }
+
+  const blocked = day ? DumbscrollFilterCore.CATEGORY_IDS.map((id) => [id, day.blocked[id] ?? 0]) : [];
+  const total = blocked.reduce((sum, [, count]) => sum + count, 0);
+  const calls = day?.spend.calls ?? 0;
+
+  if (calls === 0 && total === 0) {
+    return ["Jev hasn't checked any posts yet today."];
+  }
+
+  const hid = el("b", { id: "blocked-total", textContent: plural(total, "post") });
+  const cost = el("b", { id: "spend-usd", textContent: DumbscrollFilterCore.formatCost(day.spend.usd) });
+  const checked = `Checking ${plural(calls, "post")} cost you `;
+
+  if (total === 0) {
+    return ["Nothing hidden yet. ", checked, cost, "."];
+  }
+
+  const [topId] = blocked.reduce((best, entry) => (entry[1] > best[1] ? entry : best));
+  const mostly = MOSTLY[topId] ?? DumbscrollFilterCore.labelFor(topId);
+  const topPhrase = blocked.filter(([, count]) => count > 0).length > 1 ? `, mostly ${mostly}` : "";
+  return ["Jev hid ", hid, `${topPhrase}. `, checked, cost, "."];
+}
+
+function minutesOfDay(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function formatClockTime(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) {
+    return `${rest}m`;
+  }
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+}
+
+function renderNudge(windDownTime, windDownActive, now) {
+  const clock = document.getElementById("coach-clock");
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const target = minutesOfDay(windDownTime);
+
+  clock?.classList.toggle("is-closed", windDownActive);
+  if (windDownActive) {
+    setText("coach-nudge-title", "Wind down is on.");
+    setText("coach-nudge-sub", "The feed reopens at midnight.");
+    return;
+  }
+
+  clock?.style.setProperty("--elapsed", `${target ? Math.min(nowMinutes / target, 1) * 100 : 100}%`);
+  setText("coach-nudge-title", `Wind down in ${formatDuration(Math.max(target - nowMinutes, 1))}.`);
+  setText("coach-nudge-sub", `At ${formatClockTime(windDownTime)} the feed closes until midnight.`);
+}
+
+function renderDots(total, dailyMax) {
+  const dots = document.getElementById("coach-dots");
+  if (!dots) {
+    return;
+  }
+
+  const filled = Math.min(total / dailyMax, 1) * 10;
+  dots.replaceChildren(
+    ...Array.from({ length: 10 }, (_, index) => {
+      const dot = el("i");
+      if (index < Math.floor(filled)) {
+        dot.className = "on";
+      } else if (index === Math.floor(filled) && filled % 1 > 0) {
+        dot.className = "now";
+      }
+      return dot;
+    })
+  );
+}
+
+function renderStory(now = new Date()) {
+  const lead = document.getElementById("coach-lead");
+  if (!lead) {
+    return;
+  }
+
+  const { counts, total, dailyMax, windDownTime, day } = storyState;
+  const windDownActive = DumbscrollWindDown.isWindDownActive(now, windDownTime);
+
+  lead.replaceChildren(...renderLead({ total, dailyMax, windDownActive }));
+  renderDots(total, dailyMax);
+  document.getElementById("coach-platforms").replaceChildren(...renderPlatforms(counts));
+
+  const filterLine = document.getElementById("coach-filter");
+  const filtering = readSelectedOverlayMode() === DumbscrollOverlayMode.FILTER;
+  filterLine.hidden = !filtering;
+  if (filtering) {
+    filterLine.replaceChildren(...renderFilterLine(day));
+  }
+
+  renderNudge(windDownTime, windDownActive, now);
 }
 
 function renderFilterSettings() {
@@ -392,7 +575,16 @@ function renderFilterSettings() {
     threshold.value = String(filterSettings.threshold);
   }
   setText("jev-threshold-value", thresholdLabel(filterSettings.threshold));
+
+  const hasKey = Boolean(filterSettings.apiKey);
+  setText("jev-key-summary", hasKey ? "Jev key connected" : "No Jev key yet");
+  const details = document.getElementById("jev-key-details");
+  if (details && !hasKey) {
+    details.open = true;
+  }
+
   renderFilterStatus();
+  renderStory();
 }
 
 async function loadFilterSettings() {
@@ -419,32 +611,17 @@ function buildCategoryList() {
     return;
   }
 
-  DumbscrollFilterCore.CATEGORIES.forEach((category) => {
-    const item = document.createElement("li");
-    const label = document.createElement("label");
-    label.className = "category";
-
-    const toggle = document.createElement("input");
-    toggle.type = "checkbox";
-    toggle.className = "toggle";
-    toggle.id = `toggle-${category.id}`;
+  const tokens = DumbscrollFilterCore.CATEGORIES.map((category) => {
+    const toggle = el("input", { type: "checkbox", id: `toggle-${category.id}` });
     toggle.addEventListener("change", () => {
       saveFilterSettings({ enabled: { [category.id]: toggle.checked } });
     });
 
-    const name = document.createElement("span");
-    name.className = "category-name";
-    name.textContent = category.label;
-
-    const count = document.createElement("span");
-    count.className = "category-count";
-    count.id = `blocked-${category.id}`;
-    count.textContent = "0";
-
-    label.append(toggle, name, count);
-    item.append(label);
-    list.append(item);
+    const count = el("sup", { id: `blocked-${category.id}`, title: "Hidden today" });
+    return el("label", { className: "cat" }, [toggle, el("span", { textContent: MOSTLY[category.id] ?? category.label }), count]);
   });
+
+  list.replaceChildren(...listPhrase(tokens));
 }
 
 function bindFilterControls() {

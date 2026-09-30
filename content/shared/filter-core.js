@@ -8,12 +8,15 @@ const DumbscrollFilterCore = (() => {
   const MAX_THRESHOLD = 0.95;
   const MAX_TEXT_CHARS = 4000;
   const MIN_TEXT_CHARS = 12;
+  const MIN_MEDIA_CAPTION_CHARS = 3;
+  const MAX_ALT_CHARS = 400;
 
   // `minThreshold` raises the bar for categories that misfire on ordinary posts.
   const CATEGORIES = [
     {
       id: "ai_slop",
       label: "AI slop",
+      phrase: "AI slop",
       instructions:
         "Was `post` most likely generated or heavily padded by an AI model, with little real human substance?",
       criteria: {
@@ -24,6 +27,7 @@ const DumbscrollFilterCore = (() => {
     {
       id: "promoted",
       label: "Promoted",
+      phrase: "an ad",
       instructions:
         "Is `post` an ad, sponsored content, or a paid promotion of a product, service, course, or event?",
       criteria: {
@@ -34,6 +38,7 @@ const DumbscrollFilterCore = (() => {
     {
       id: "engagement_bait",
       label: "Engagement bait",
+      phrase: "engagement bait",
       instructions: "Is `post` mainly fishing for likes, comments, reposts, or follows?",
       criteria: {
         true: "Asks readers to 'comment YES', 'agree?', 'repost if', 'follow for more', gates a freebie on comments, or asks a throwaway question only for reach.",
@@ -43,6 +48,7 @@ const DumbscrollFilterCore = (() => {
     {
       id: "humblebrag",
       label: "Humblebrag",
+      phrase: "a humblebrag",
       minThreshold: 0.9,
       instructions:
         "Is `post` a humblebrag: bragging about the author's own success while pretending to be humble, grateful, or teaching a lesson?",
@@ -54,6 +60,7 @@ const DumbscrollFilterCore = (() => {
     {
       id: "ragebait",
       label: "Rage bait",
+      phrase: "rage bait",
       instructions:
         "Is `post` deliberately provocative to trigger outrage or arguments rather than to inform?",
       criteria: {
@@ -62,8 +69,20 @@ const DumbscrollFilterCore = (() => {
       },
     },
     {
+      id: "meme",
+      label: "Meme",
+      phrase: "a meme",
+      instructions:
+        "Is `post` a meme or joke post made for a quick laugh rather than to inform or share something real? `media` says how many images or videos it has and any image alt text.",
+      criteria: {
+        true: "A meme or joke format: a short caption on an image or GIF, reaction posts, templates like 'POV:', 'Me when…', 'Nobody: / Me:', 'Tell me you… without telling me', relatable-humor one-liners, or shitposts.",
+        false: "Informative or personal content where any image shows real information (a chart, a screenshot of work, a product or event photo), or a real opinion that only uses a joke along the way.",
+      },
+    },
+    {
       id: "scam",
       label: "Scam",
+      phrase: "a scam",
       instructions: "Is `post` a scam or spam?",
       criteria: {
         true: "Crypto or get-rich-quick schemes, fake giveaways, suspicious links, impersonation, or bot-like replies.",
@@ -108,6 +127,7 @@ const DumbscrollFilterCore = (() => {
       cache: {},
       blocked: {},
       revealed: [],
+      spend: { usd: 0, calls: 0 },
       status: null,
     };
   }
@@ -122,6 +142,10 @@ const DumbscrollFilterCore = (() => {
       cache: raw.cache ?? {},
       blocked: raw.blocked ?? {},
       revealed: Array.isArray(raw.revealed) ? raw.revealed : [],
+      spend: {
+        usd: Number.isFinite(raw.spend?.usd) ? raw.spend.usd : 0,
+        calls: Number.isFinite(raw.spend?.calls) ? raw.spend.calls : 0,
+      },
       status: raw.status ?? null,
     };
   }
@@ -137,11 +161,27 @@ const DumbscrollFilterCore = (() => {
       .slice(0, MAX_TEXT_CHARS);
   }
 
-  function isClassifiable(post) {
-    return cleanText(post?.text).length >= MIN_TEXT_CHARS;
+  function normalizeMedia(media) {
+    const count = (value) => (Number.isFinite(value) && value > 0 ? Math.floor(value) : 0);
+    return {
+      images: count(media?.images),
+      videos: count(media?.videos),
+      alt_text: cleanText((media?.alt ?? []).join(" | ")).slice(0, MAX_ALT_CHARS),
+    };
   }
 
-  function buildJevRequest({ platform, author, text }) {
+  function hasMedia(media) {
+    const normalized = normalizeMedia(media);
+    return normalized.images + normalized.videos > 0;
+  }
+
+  // Memes are often an image with a two-word caption, so media lowers the text bar.
+  function isClassifiable(post) {
+    const length = cleanText(post?.text).length;
+    return length >= MIN_TEXT_CHARS || (hasMedia(post?.media) && length >= MIN_MEDIA_CAPTION_CHARS);
+  }
+
+  function buildJevRequest({ platform, author, text, media }) {
     const questions = {};
     CATEGORIES.forEach((category) => {
       questions[category.id] = {
@@ -157,6 +197,7 @@ const DumbscrollFilterCore = (() => {
         platform,
         author: cleanText(author).slice(0, 200),
         post: cleanText(text),
+        media: normalizeMedia(media),
       },
       questions,
     };
@@ -172,6 +213,25 @@ const DumbscrollFilterCore = (() => {
     });
 
     return probabilities;
+  }
+
+  // OpenRouter bills in USD credits and reports each call's charge as `usage.cost`.
+  function costFromResponse(response) {
+    const cost = Number(response?.usage?.cost);
+    return Number.isFinite(cost) && cost >= 0 ? cost : null;
+  }
+
+  function formatCost(usd) {
+    if (!Number.isFinite(usd) || usd <= 0) {
+      return "$0";
+    }
+
+    if (usd >= 0.01) {
+      return `$${usd.toFixed(2)}`;
+    }
+
+    const decimals = Math.min(8, 1 - Math.floor(Math.log10(usd)));
+    return `$${usd.toFixed(decimals).replace(/0+$/, "")}`;
   }
 
   function labelFor(categoryId) {
@@ -224,6 +284,22 @@ const DumbscrollFilterCore = (() => {
     };
   }
 
+  function costText(decision) {
+    return Number.isFinite(decision?.cost) ? formatCost(decision.cost) : null;
+  }
+
+  function phraseFor(categoryId) {
+    return CATEGORIES.find((category) => category.id === categoryId)?.phrase ?? labelFor(categoryId);
+  }
+
+  function pillSentence(decision) {
+    if (decision.local) {
+      return "Hidden. This post is labelled as an ad.";
+    }
+
+    return `Hidden. Jev is ${Math.round(decision.probability * 100)}% sure this is ${phraseFor(decision.category)}.`;
+  }
+
   function pillText(decision) {
     if (decision.local) {
       return decision.label;
@@ -251,12 +327,18 @@ const DumbscrollFilterCore = (() => {
     cacheKey,
     cleanText,
     isClassifiable,
+    normalizeMedia,
     buildJevRequest,
     probabilitiesFromResponse,
+    costFromResponse,
+    formatCost,
+    costText,
     decide,
     adLabelDecision,
     labelFor,
     pillText,
+    pillSentence,
+    phraseFor,
   };
 })();
 

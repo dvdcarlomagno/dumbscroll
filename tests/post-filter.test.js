@@ -30,7 +30,7 @@ function jevResponse(nouls) {
   Object.entries(nouls).forEach(([id, noul]) => {
     answers[id] = { type: "noul", noul };
   });
-  return { model: "jev-1.13.0", answers, usage: { input_tokens: 300, output_tokens: 6 } };
+  return { model: "jev-1.13.0", answers, usage: { input_tokens: 300, output_tokens: 6, cost: 0.00005 } };
 }
 
 function createFetch(nouls, { status = 200, delayMs = 0 } = {}) {
@@ -55,7 +55,7 @@ test("request body asks one noul per category with the post as state", () => {
   const body = core.buildJevRequest({ platform: "x", author: "Guru", text: `  ${SLOP}  ` });
 
   assert.equal(body.model, "~typesafe/jev-latest");
-  assert.deepEqual(body.state, { platform: "x", author: "Guru", post: SLOP });
+  assert.deepEqual(body.state, { platform: "x", author: "Guru", post: SLOP, media: { images: 0, videos: 0, alt_text: "" } });
   assert.deepEqual(Object.keys(body.questions), core.CATEGORY_IDS);
   Object.values(body.questions).forEach((question) => {
     assert.equal(question.type, "noul");
@@ -195,4 +195,60 @@ test("day state resets on a new date", () => {
   const stale = { date: "2000-01-01", cache: { "x:1": {} }, blocked: { ai_slop: 3 }, revealed: ["x:1"] };
   const day = core.normalizeDay(stale, "2026-09-30");
   assert.deepEqual(day, core.freshDay("2026-09-30"));
+});
+
+test("each Jev call's cost is tagged on the post and added to the day's spend once", async () => {
+  const storage = createStorage({ dumbscrollFilter: { apiKey: "k" } });
+  const { fetchImpl, calls } = createFetch({ ai_slop: 0.91 });
+  const classifier = DumbscrollClassifier.create({ storage, fetchImpl, core });
+  const post = { platform: "x", id: "s1", text: SLOP };
+
+  const first = await classifier.classify(post);
+  const repeat = await classifier.classify(post);
+  await classifier.classify({ platform: "x", id: "s2", text: SLOP });
+
+  assert.equal(calls.length, 2);
+  assert.equal(first.cost, 0.00005);
+  assert.equal(repeat.cost, 0.00005);
+  assert.equal(core.pillText(first), "AI slop · 91%");
+  assert.equal(core.costText(first), "$0.00005");
+  assert.equal(core.costText({ flagged: true, local: true }), null);
+  assert.deepEqual(storage.data.dumbscrollFilterDay.spend, { usd: 0.0001, calls: 2 });
+});
+
+test("blocked-post sentence reads as plain English", () => {
+  assert.equal(
+    core.pillSentence({ category: "ai_slop", label: "AI slop", probability: 0.912 }),
+    "Hidden. Jev is 91% sure this is AI slop."
+  );
+  assert.equal(
+    core.pillSentence({ category: "meme", label: "Meme", probability: 0.77 }),
+    "Hidden. Jev is 77% sure this is a meme."
+  );
+  assert.equal(core.pillSentence(core.adLabelDecision()), "Hidden. This post is labelled as an ad.");
+});
+
+test("cost formatting keeps two significant digits below a cent", () => {
+  assert.equal(core.formatCost(0), "$0");
+  assert.equal(core.formatCost(0.00005), "$0.00005");
+  assert.equal(core.formatCost(0.0000532), "$0.000053");
+  assert.equal(core.formatCost(0.0021), "$0.0021");
+  assert.equal(core.formatCost(0.1234), "$0.12");
+  assert.equal(core.costFromResponse({ usage: {} }), null);
+});
+
+test("media goes to Jev as state and lets short meme captions be classified", () => {
+  const body = core.buildJevRequest({
+    platform: "x",
+    author: "a",
+    text: "me rn",
+    media: { images: 1, videos: 0, alt: ["Dog in a burning room", "This is fine"] },
+  });
+  assert.deepEqual(body.state.media, { images: 1, videos: 0, alt_text: "Dog in a burning room | This is fine" });
+  assert.ok(core.CATEGORY_IDS.includes("meme"));
+
+  assert.equal(core.isClassifiable({ text: "me rn", media: { images: 1 } }), true);
+  assert.equal(core.isClassifiable({ text: "me rn" }), false);
+  assert.equal(core.isClassifiable({ text: "ok", media: { images: 1 } }), false);
+  assert.deepEqual(core.buildJevRequest({ text: SLOP }).state.media, { images: 0, videos: 0, alt_text: "" });
 });

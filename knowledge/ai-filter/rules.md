@@ -8,3 +8,5 @@
 6. OpenRouter is the only Jev provider (the user asked to drop TypeSafe direct in 2.3.0). A 2.2.0 `apiKeys.openrouter` key is migrated to `apiKey`.
 7. Key the blur on the pill (`:has(> .dumbscroll-pill)`), never on a class set on the post. X's React re-renders reset `className` and drop the blur while the pill stays.
 8. Give categories that misfire on ordinary posts a `minThreshold` floor (Humblebrag: 0.9) instead of raising the global threshold.
+9. Show what classification costs: per-post cost on the pill and the daily total in the popup. The goal is to make the cost of doomscrolling visible, not to hide it.
+10. Never commit API keys: the repo is public. A local key goes in the git-ignored `config.local.js`, which the service worker loads with `importScripts` inside a try/catch. It seeds `chrome.storage.local` only when no key is saved, and is excluded from release zips.

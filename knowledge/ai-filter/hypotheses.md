@@ -6,3 +6,5 @@
 - Adding `criteria: { true, false }` to each category's `noul` (e.g. "a genuine personal update with concrete detail" as the false side for AI slop) will cut false positives. Shipped in 2.3.0; not yet confirmed with real feed data.
 - "Humblebrag" will have the highest false-positive rate on LinkedIn, since genuine career news reads similarly. Confirmed once by the user on 2.2.0 (1/3 toward a rule). Check whether the 0.9 floor plus criteria is enough.
 - The LinkedIn text selectors (`.update-components-text`, `feed-commentary`) will drift. The fallback to `innerText` of the whole post keeps classification working, but adds noise (reaction counts, button labels).
+- Meme detection on real feeds depends on the media selectors (`[data-testid="tweetPhoto"] img`, `[data-testid="videoPlayer"]`, `.update-components-image img`). If memes slip through, check that `media.images` is non-zero first.
+- Each extra category adds about 16% to the cost per call. Past 8 or so categories, consider one `choice` question for the mutually exclusive ones.
