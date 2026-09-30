@@ -90,6 +90,7 @@ test("clicking fade stays on fade even if a stale render/load races the save", a
   global.DumbscrollWindDown = require("../content/shared/wind-down.js");
   global.DumbscrollOverlayMode = require("../content/shared/overlay-mode.js");
   global.DumbscrollLimitLock = require("../content/shared/limit-lock.js");
+  global.DumbscrollFilterCore = require("../content/shared/filter-core.js");
   global.chrome = {
     storage: {
       local: {

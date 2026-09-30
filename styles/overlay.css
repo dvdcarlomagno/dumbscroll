@@ -27,6 +27,10 @@
   transition: height 0.28s ease, box-shadow 0.28s ease, opacity 0.28s ease;
 }
 
+#dumbscroll-counter-overlay.overlay-hidden {
+  display: none;
+}
+
 #dumbscroll-counter-overlay.overlay-fade {
   box-shadow: none;
   opacity: var(--dumbscroll-fade-opacity, 1);
@@ -36,13 +40,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35em;
+  gap: 0.3em;
   opacity: 0;
   transition: opacity 0.2s ease;
 
   font-family: "SF Pro Rounded", "Avenir Next Rounded", ui-rounded, "Segoe UI", sans-serif;
   font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.03em;
   color: var(--dumbscroll-ink);
   text-align: center;
 }
@@ -55,7 +60,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9em;
+  font-size: 0.82em;
   color: var(--dumbscroll-ink);
 }
 
@@ -69,4 +74,54 @@
 
 #dumbscroll-counter-overlay.overlay-fade.wind-down.at-max {
   box-shadow: 0 16px 48px rgba(17, 17, 17, 0.22);
+}
+
+/* AI filter: flagged posts */
+.dumbscroll-filtered {
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: 72px;
+}
+
+.dumbscroll-filtered > :not(.dumbscroll-pill) {
+  filter: blur(14px) saturate(0.6);
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.dumbscroll-pill {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #edb100, #ffd100 52%, #ffed66);
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  font-family: "SF Pro Rounded", "Avenir Next Rounded", ui-rounded, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  color: #111111;
+  white-space: nowrap;
+}
+
+.dumbscroll-pill-show {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: #111111;
+  color: #ffd100;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dumbscroll-pill-show:hover {
+  background: #2a2a2a;
 }

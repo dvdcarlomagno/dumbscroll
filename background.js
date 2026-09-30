@@ -1,4 +1,31 @@
-/* global chrome */
+/* global chrome, importScripts, DumbscrollClassifier */
+importScripts("content/shared/filter-core.js", "background/classifier.js");
+
+const classifier = DumbscrollClassifier.create({
+  storage: chrome.storage.local,
+  fetchImpl: (...args) => fetch(...args),
+});
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "dumbscroll:classify") {
+    classifier
+      .classify(message.post)
+      .then(sendResponse, (error) => sendResponse({ flagged: false, error: String(error) }));
+    return true;
+  }
+
+  if (message?.type === "dumbscroll:reveal") {
+    classifier.reveal(message.post).then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
+  if (message?.type === "dumbscroll:test-key") {
+    classifier.testKey().then(sendResponse);
+    return true;
+  }
+
+  return false;
+});
 
 function todayKey() {
   return new Date().toLocaleDateString("en-CA");

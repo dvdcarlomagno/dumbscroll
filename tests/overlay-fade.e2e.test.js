@@ -80,6 +80,32 @@ test("e2e: fade mode still goes fully opaque during wind down", () => {
   assert.equal(view.label, WIND_DOWN_LABEL);
 });
 
+test("e2e: filter mode hides the overlay until wind down", () => {
+  const day = resolveOverlayView({
+    count: 80,
+    max: 100,
+    windDownTime: "19:00",
+    overlayMode: "filter",
+    now: atLocal(2026, 7, 11, 12, 0),
+  });
+  const evening = resolveOverlayView({
+    count: 80,
+    max: 100,
+    windDownTime: "19:00",
+    overlayMode: "filter",
+    now: atLocal(2026, 7, 11, 21, 0),
+  });
+
+  assert.equal(day.overlayMode, "filter");
+  assert.equal(day.hidden, true);
+  assert.equal(day.opacity, 0);
+
+  assert.equal(evening.hidden, false);
+  assert.equal(evening.heightProgress, 1);
+  assert.equal(evening.opacity, 1);
+  assert.equal(evening.label, WIND_DOWN_LABEL);
+});
+
 test("e2e: unknown overlay mode falls back to grow", () => {
   const view = resolveOverlayView({
     count: 40,
