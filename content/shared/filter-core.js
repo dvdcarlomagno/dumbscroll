@@ -1,8 +1,23 @@
 const DumbscrollFilterCore = (() => {
   const SETTINGS_KEY = "dumbscrollFilter";
   const DAY_KEY = "dumbscrollFilterDay";
-  const JEV_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
-  const JEV_MODEL = "jev-latest";
+  const PROVIDERS = {
+    openrouter: {
+      id: "openrouter",
+      label: "OpenRouter",
+      endpoint: "https://openrouter.ai/api/alpha/decisions",
+      model: "~typesafe/jev-latest",
+      keyPlaceholder: "sk-or-…",
+    },
+    typesafe: {
+      id: "typesafe",
+      label: "TypeSafe",
+      endpoint: "https://api.typesafe.ai/v1/systemone",
+      model: "jev-latest",
+      keyPlaceholder: "TypeSafe API key",
+    },
+  };
+  const DEFAULT_PROVIDER = "openrouter";
   const DEFAULT_THRESHOLD = 0.7;
   const MIN_THRESHOLD = 0.5;
   const MAX_THRESHOLD = 0.95;
@@ -65,8 +80,20 @@ const DumbscrollFilterCore = (() => {
       enabled[id] = raw?.enabled?.[id] !== false;
     });
 
+    const provider = Object.hasOwn(PROVIDERS, raw?.provider) ? raw.provider : DEFAULT_PROVIDER;
+    const apiKeys = {};
+    Object.keys(PROVIDERS).forEach((id) => {
+      const key = raw?.apiKeys?.[id];
+      apiKeys[id] = typeof key === "string" ? key.trim() : "";
+    });
+    if (!raw?.apiKeys && typeof raw?.apiKey === "string") {
+      apiKeys[provider] = raw.apiKey.trim();
+    }
+
     return {
-      apiKey: typeof raw?.apiKey === "string" ? raw.apiKey.trim() : "",
+      provider,
+      apiKeys,
+      apiKey: apiKeys[provider],
       enabled,
       threshold: clampThreshold(raw?.threshold ?? DEFAULT_THRESHOLD),
     };
@@ -115,7 +142,11 @@ const DumbscrollFilterCore = (() => {
     return cleanText(post?.text).length >= MIN_TEXT_CHARS;
   }
 
-  function buildJevRequest({ platform, author, text }) {
+  function providerFor(id) {
+    return PROVIDERS[id] ?? PROVIDERS[DEFAULT_PROVIDER];
+  }
+
+  function buildJevRequest({ platform, author, text }, providerId = DEFAULT_PROVIDER) {
     const questions = {};
     CATEGORIES.forEach((category) => {
       questions[category.id] = {
@@ -125,7 +156,7 @@ const DumbscrollFilterCore = (() => {
     });
 
     return {
-      model: JEV_MODEL,
+      model: providerFor(providerId).model,
       state: {
         platform,
         author: cleanText(author).slice(0, 200),
@@ -203,8 +234,9 @@ const DumbscrollFilterCore = (() => {
   return {
     SETTINGS_KEY,
     DAY_KEY,
-    JEV_ENDPOINT,
-    JEV_MODEL,
+    PROVIDERS,
+    DEFAULT_PROVIDER,
+    providerFor,
     DEFAULT_THRESHOLD,
     MIN_THRESHOLD,
     MAX_THRESHOLD,

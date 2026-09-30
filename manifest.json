@@ -11,6 +11,7 @@
     "https://twitter.com/*",
     "https://www.youtube.com/*",
     "https://youtube.com/*",
+    "https://openrouter.ai/*",
     "https://api.typesafe.ai/*"
   ],
   "background": {

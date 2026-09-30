@@ -73,16 +73,25 @@
       </label>
       <input id="jev-threshold" type="range" min="0.5" max="0.95" step="0.05" />
 
-      <label for="jev-key" class="field-label">TypeSafe API key</label>
+      <p class="field-label" id="jev-provider-label">Jev provider</p>
+      <div class="segmented segmented-2" role="radiogroup" aria-labelledby="jev-provider-label">
+        <label>
+          <input type="radio" name="jev-provider" value="openrouter" checked />
+          <span>OpenRouter</span>
+        </label>
+        <label>
+          <input type="radio" name="jev-provider" value="typesafe" />
+          <span>TypeSafe</span>
+        </label>
+      </div>
+
+      <label for="jev-key" class="field-label" id="jev-key-label">OpenRouter API key</label>
       <div class="settings-row">
-        <input id="jev-key" type="password" autocomplete="off" spellcheck="false" placeholder="ts_…" />
+        <input id="jev-key" type="password" autocomplete="off" spellcheck="false" />
         <button id="jev-test" type="button" class="button">Test</button>
       </div>
       <p id="jev-status" class="help" aria-live="polite"></p>
-      <p class="help fine">
-        Post text and author name from LinkedIn and X are sent to TypeSafe's Jev model to classify
-        them. Posts labelled Promoted or Ad are blurred locally.
-      </p>
+      <p class="help fine" id="jev-privacy"></p>
     </section>
 
     <details class="card limits" id="limits">

@@ -151,17 +151,6 @@ const DumbscrollStorage = (() => {
     return DumbscrollFilterCore.normalizeSettings(dumbscrollFilter);
   }
 
-  async function setFilterSettings(partial) {
-    const current = await getFilterSettings();
-    const next = DumbscrollFilterCore.normalizeSettings({
-      ...current,
-      ...partial,
-      enabled: { ...current.enabled, ...partial?.enabled },
-    });
-    await chrome.storage.local.set({ dumbscrollFilter: next });
-    return next;
-  }
-
   async function getFilterDay() {
     const { dumbscrollFilterDay } = await chrome.storage.local.get("dumbscrollFilterDay");
     return DumbscrollFilterCore.normalizeDay(dumbscrollFilterDay, todayKey());
@@ -177,7 +166,6 @@ const DumbscrollStorage = (() => {
     getOverlayMode,
     increment,
     getFilterSettings,
-    setFilterSettings,
     getFilterDay,
     todayKey,
     PLATFORMS,

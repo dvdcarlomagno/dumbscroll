@@ -54,7 +54,8 @@ function createFetch(nouls, { status = 200, delayMs = 0 } = {}) {
 test("request body asks one noul per category with the post as state", () => {
   const body = core.buildJevRequest({ platform: "x", author: "Guru", text: `  ${SLOP}  ` });
 
-  assert.equal(body.model, "jev-latest");
+  assert.equal(body.model, "~typesafe/jev-latest");
+  assert.equal(core.buildJevRequest({ text: SLOP }, "typesafe").model, "jev-latest");
   assert.deepEqual(body.state, { platform: "x", author: "Guru", post: SLOP });
   assert.deepEqual(Object.keys(body.questions), core.CATEGORY_IDS);
   Object.values(body.questions).forEach((question) => {
@@ -115,7 +116,7 @@ test("classifies once, then serves repeats from the daily cache", async () => {
   const repeat = await classifier.classify(post);
 
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, core.JEV_ENDPOINT);
+  assert.equal(calls[0].url, "https://openrouter.ai/api/alpha/decisions");
   assert.equal(calls[0].init.headers.Authorization, "Bearer secret");
   assert.equal(first.flagged, true);
   assert.equal(first.category, "ai_slop");
@@ -165,6 +166,45 @@ test("revealed posts stay revealed and limit Jev to 4 concurrent requests", asyn
   assert.equal(again.flagged, true);
   assert.equal(again.revealed, true);
   assert.equal(storage.data.dumbscrollFilterDay.blocked.ai_slop, 10);
+});
+
+test("keys are stored per provider and default to OpenRouter", () => {
+  const defaults = core.normalizeSettings(null);
+  assert.equal(defaults.provider, "openrouter");
+  assert.equal(defaults.apiKey, "");
+
+  const settings = core.normalizeSettings({
+    provider: "typesafe",
+    apiKeys: { openrouter: " sk-or-1 ", typesafe: "ts-1" },
+  });
+  assert.equal(settings.apiKey, "ts-1");
+  assert.equal(settings.apiKeys.openrouter, "sk-or-1");
+
+  assert.equal(core.normalizeSettings({ provider: "nope", apiKey: "legacy" }).apiKeys.openrouter, "legacy");
+});
+
+test("TypeSafe provider calls the TypeSafe endpoint with its own key", async () => {
+  const storage = createStorage({
+    dumbscrollFilter: { provider: "typesafe", apiKeys: { openrouter: "or", typesafe: "ts" } },
+  });
+  const { fetchImpl, calls } = createFetch({ scam: 0.9 });
+  const classifier = DumbscrollClassifier.create({ storage, fetchImpl, core });
+
+  const decision = await classifier.classify({ platform: "x", id: "t1", text: SLOP });
+
+  assert.equal(decision.category, "scam");
+  assert.equal(calls[0].url, "https://api.typesafe.ai/v1/systemone");
+  assert.equal(calls[0].init.headers.Authorization, "Bearer ts");
+  assert.equal(calls[0].body.model, "jev-latest");
+});
+
+test("OpenRouter 402 surfaces as out of credits", async () => {
+  const storage = createStorage({ dumbscrollFilter: { apiKey: "k" } });
+  const { fetchImpl } = createFetch({}, { status: 402 });
+  const classifier = DumbscrollClassifier.create({ storage, fetchImpl, core });
+
+  const result = await classifier.classify({ platform: "x", id: "c1", text: SLOP });
+  assert.equal(result.error, "Out of credits");
 });
 
 test("day state resets on a new date", () => {

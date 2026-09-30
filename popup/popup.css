@@ -198,6 +198,11 @@ body {
   background: rgba(17, 17, 17, 0.06);
 }
 
+.segmented-2 {
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 6px;
+}
+
 .segmented label {
   position: relative;
   cursor: pointer;

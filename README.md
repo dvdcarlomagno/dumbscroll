@@ -19,11 +19,18 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 
 ## AI filter setup
 
-1. Get an early-access API key from [TypeSafe](https://typesafe.ai).
-2. Open the popup, pick **AI filter**, paste the key, and press **Test**.
-3. Scroll LinkedIn or X. Classifications are cached per post for the day, and at most 4 requests run at once.
+Jev is available from two providers. The request and answers are the same on both:
 
-**Privacy:** in AI filter mode, the text and author name of LinkedIn and X posts near your viewport are sent to `api.typesafe.ai`. Your key is stored in `chrome.storage.local` and only the extension's service worker uses it. Bar and Fade modes send nothing anywhere.
+| Provider | Endpoint | Model | Key |
+|----------|----------|-------|-----|
+| **OpenRouter** (default) | `openrouter.ai/api/alpha/decisions` | `~typesafe/jev-latest` | Any [OpenRouter key](https://openrouter.ai/keys), billed to your OpenRouter credits. No waitlist. |
+| TypeSafe | `api.typesafe.ai/v1/systemone` | `jev-latest` | TypeSafe early-access key |
+
+1. Open the popup and pick **AI filter**.
+2. Choose a provider, paste its key, and press **Test**. Keys are stored per provider.
+3. Scroll LinkedIn or X. Classifications are cached per post for the day, and at most 4 requests run at once. OpenRouter's guide reports about $0.00005 per call.
+
+**Privacy:** in AI filter mode, the text and author name of LinkedIn and X posts near your viewport are sent to the selected provider. Your key is stored in `chrome.storage.local` and only the extension's service worker uses it. Bar and Fade modes send nothing anywhere.
 
 ## Install (load unpacked)
 

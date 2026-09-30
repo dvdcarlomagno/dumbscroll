@@ -390,7 +390,8 @@ function renderFilterStatus() {
   let text = "";
   let tone = "";
   if (!filterSettings.apiKey) {
-    text = "Add your TypeSafe API key to start filtering. Promoted/Ad labels work without it.";
+    const provider = DumbscrollFilterCore.providerFor(filterSettings.provider);
+    text = `Add your ${provider.label} API key to start filtering. Promoted/Ad labels work without it.`;
   } else if (lastFilterStatus) {
     text = lastFilterStatus.message;
     tone = lastFilterStatus.ok ? "is-ok" : "is-error";
@@ -419,6 +420,16 @@ function renderFilterSettings() {
     return;
   }
 
+  const provider = DumbscrollFilterCore.providerFor(filterSettings.provider);
+  document.querySelectorAll('input[name="jev-provider"]').forEach((input) => {
+    input.checked = input.value === provider.id;
+  });
+  setText("jev-key-label", `${provider.label} API key`);
+  setText(
+    "jev-privacy",
+    `Post text and author name from LinkedIn and X are sent to Jev via ${provider.label} to classify them. Posts labelled Promoted or Ad are blurred locally.`
+  );
+  keyInput.placeholder = provider.keyPlaceholder;
   if (!keyInput.matches(":focus")) {
     keyInput.value = filterSettings.apiKey;
   }
@@ -447,10 +458,16 @@ async function loadFilterSettings() {
 }
 
 async function saveFilterSettings(partial) {
+  const { apiKey, ...rest } = partial;
+  const provider = rest.provider ?? filterSettings.provider;
+  const apiKeys =
+    apiKey === undefined ? filterSettings.apiKeys : { ...filterSettings.apiKeys, [provider]: apiKey };
+
   filterSettings = DumbscrollFilterCore.normalizeSettings({
     ...filterSettings,
-    ...partial,
-    enabled: { ...filterSettings.enabled, ...partial.enabled },
+    ...rest,
+    apiKeys,
+    enabled: { ...filterSettings.enabled, ...rest.enabled },
   });
   renderFilterSettings();
   await chrome.storage.local.set({ [DumbscrollFilterCore.SETTINGS_KEY]: filterSettings });
@@ -509,6 +526,16 @@ function bindFilterControls() {
   keyInput.addEventListener("change", () => {
     clearTimeout(filterSaveTimer);
     saveFilterSettings({ apiKey: keyInput.value });
+  });
+
+  document.querySelectorAll('input[name="jev-provider"]').forEach((input) => {
+    input.addEventListener("change", async () => {
+      clearTimeout(filterSaveTimer);
+      lastFilterStatus = null;
+      keyInput.blur();
+      await saveFilterSettings({ apiKey: keyInput.value });
+      await saveFilterSettings({ provider: input.value });
+    });
   });
 
   const threshold = document.getElementById("jev-threshold");

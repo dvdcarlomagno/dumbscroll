@@ -8,6 +8,14 @@ const DumbscrollClassifier = (() => {
       return "API key rejected";
     }
 
+    if (error?.status === 402) {
+      return "Out of credits";
+    }
+
+    if (error?.status === 429) {
+      return "Rate limited, retrying later";
+    }
+
     if (error?.name === "AbortError") {
       return "Jev timed out";
     }
@@ -70,18 +78,19 @@ const DumbscrollClassifier = (() => {
       }
     }
 
-    async function callJev(apiKey, post) {
+    async function callJev(settings, post) {
+      const provider = core.providerFor(settings.provider);
       const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
       const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
 
       try {
-        const response = await fetchImpl(core.JEV_ENDPOINT, {
+        const response = await fetchImpl(provider.endpoint, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${settings.apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(core.buildJevRequest(post)),
+          body: JSON.stringify(core.buildJevRequest(post, provider.id)),
           signal: controller?.signal,
         });
 
@@ -145,7 +154,7 @@ const DumbscrollClassifier = (() => {
       }
 
       if (!inFlight.has(key)) {
-        const request = runLimited(() => callJev(settings.apiKey, post))
+        const request = runLimited(() => callJev(settings, post))
           .then(async (probabilities) => {
             await updateDay((next) => {
               next.cache[key] = { ...(next.cache[key] ?? {}), probabilities };
@@ -190,7 +199,7 @@ const DumbscrollClassifier = (() => {
       }
 
       try {
-        await callJev(settings.apiKey, {
+        await callJev(settings, {
           platform: "test",
           author: "Dumbscroll",
           text: "Agree? Comment YES if you think consistency beats talent. 🚀 Let that sink in.",
