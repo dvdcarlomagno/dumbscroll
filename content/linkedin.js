@@ -153,6 +153,33 @@
     return posts;
   }
 
+  const TEXT_SELECTOR = [
+    ".update-components-text",
+    ".feed-shared-update-v2__description",
+    '[data-view-name="feed-commentary"]',
+    ".feed-shared-inline-show-more-text",
+  ].join(", ");
+  const AUTHOR_SELECTOR = [
+    ".update-components-actor__title",
+    ".update-components-actor__name",
+    '[data-view-name="feed-actor-name"]',
+  ].join(", ");
+  const AD_LABEL = /^(Promoted|Sponsored)( by .+)?$/i;
+
+  function extract(el) {
+    const textNodes = [...el.querySelectorAll(TEXT_SELECTOR)];
+    const text = textNodes.length
+      ? textNodes.map((node) => node.innerText).join("\n")
+      : el.innerText;
+    const author = el.querySelector(AUTHOR_SELECTOR)?.innerText ?? "";
+
+    return {
+      text,
+      author,
+      isAdLabel: DumbscrollPostFilter.hasExactLabel(el, AD_LABEL),
+    };
+  }
+
   const tracker = DoomscrollPostTracker.create({
     platform: "linkedin",
     postSelector: POST_SELECTOR,
@@ -161,9 +188,17 @@
     findPosts,
   });
 
+  const filter = DumbscrollPostFilter.create({
+    platform: "linkedin",
+    collectPosts: findPosts,
+    getPostId,
+    extract,
+  });
+
   function boot() {
     DumbscrollOverlay.init();
     tracker.init();
+    filter.init();
   }
 
   if (document.readyState === "loading") {

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Dumbscroll",
-  "version": "2.1.3",
-  "description": "Track how many social posts and videos you scroll each day — with a yellow counter that grows until you look away.",
+  "version": "2.2.0",
+  "description": "Track how many social posts and videos you scroll each day, and blur AI slop, promoted posts, and bait on LinkedIn and X.",
   "permissions": ["storage"],
   "host_permissions": [
     "https://www.linkedin.com/*",
@@ -10,7 +10,8 @@
     "https://x.com/*",
     "https://twitter.com/*",
     "https://www.youtube.com/*",
-    "https://youtube.com/*"
+    "https://youtube.com/*",
+    "https://api.typesafe.ai/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -40,6 +41,8 @@
         "content/shared/storage.js",
         "content/shared/overlay.js",
         "content/shared/post-tracker.js",
+        "content/shared/filter-core.js",
+        "content/shared/post-filter.js",
         "content/linkedin.js"
       ],
       "css": ["styles/overlay.css"],
@@ -53,6 +56,8 @@
         "content/shared/storage.js",
         "content/shared/overlay.js",
         "content/shared/post-tracker.js",
+        "content/shared/filter-core.js",
+        "content/shared/post-filter.js",
         "content/x.js"
       ],
       "css": ["styles/overlay.css"],

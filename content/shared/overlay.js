@@ -14,8 +14,10 @@ const DumbscrollOverlay = (() => {
   let windDownTimer = null;
   const MIN_HEIGHT_PX = 1;
   const ICON_SVG = `
-    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="M12 5.25C7.17 5.25 3.047 8.882 1.5 12c1.547 3.118 5.67 6.75 10.5 6.75s8.953-3.632 10.5-6.75C20.953 8.882 16.83 5.25 12 5.25Zm0 11.25a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Zm0-2.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z"/>
+    <svg viewBox="4 4 16 16" width="1em" height="1em" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="8" fill="currentColor"/>
+      <path fill="var(--dumbscroll-yellow-mid)" d="M7.3 10.6a1.9 1.9 0 0 0 3.8 0Z M12.9 10.6a1.9 1.9 0 0 0 3.8 0Z M13.8 16.1Q13.2 16.9 13.2 17.5a0.6 0.6 0 0 0 1.2 0Q14.4 16.9 13.8 16.1Z"/>
+      <path d="M9.4 15.2 13.6 14.9" stroke="var(--dumbscroll-yellow-mid)" stroke-width="1.35" stroke-linecap="round" fill="none"/>
     </svg>
   `;
 
@@ -32,7 +34,7 @@ const DumbscrollOverlay = (() => {
       return DumbscrollOverlayMode.normalizeOverlayMode(overlayMode);
     }
 
-    return overlayMode === "fade" ? "fade" : "grow";
+    return overlayMode === "fade" || overlayMode === "filter" ? overlayMode : "grow";
   }
 
   function resolveOverlayView({
@@ -46,8 +48,9 @@ const DumbscrollOverlay = (() => {
     const countProgress = progressFor(count, max);
     const mode = normalizeMode(overlayMode);
     const fade = mode === "fade";
-    const heightProgress = fade || windDown ? 1 : countProgress;
-    const opacity = windDown ? 1 : fade ? countProgress : 1;
+    const hidden = mode === "filter" && !windDown;
+    const heightProgress = hidden ? 0 : fade || windDown ? 1 : countProgress;
+    const opacity = hidden ? 0 : windDown ? 1 : fade ? countProgress : 1;
     const atMax = windDown || count >= max;
     const label = windDown
       ? DumbscrollWindDown.WIND_DOWN_LABEL
@@ -55,6 +58,7 @@ const DumbscrollOverlay = (() => {
 
     return {
       windDown,
+      hidden,
       overlayMode: mode,
       heightProgress,
       opacity,
@@ -131,6 +135,7 @@ const DumbscrollOverlay = (() => {
     overlay.style.fontSize = `${fontSizeFor(fontProgress, viewportHeight)}px`;
     overlay.style.setProperty("--dumbscroll-fade-opacity", String(view.opacity));
     overlay.classList.toggle("overlay-fade", fade);
+    overlay.classList.toggle("overlay-hidden", Boolean(view.hidden));
     overlay.classList.toggle("at-max", view.atMax);
     overlay.classList.toggle(
       "has-content",

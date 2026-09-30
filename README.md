@@ -1,8 +1,8 @@
 # Dumbscroll
 
-A Chromium extension that counts how many social posts and videos you consume each day — with a yellow overlay that either grows or fades as you scroll.
+A Chromium extension that counts how many social posts and videos you consume each day — with a yellow overlay that grows or fades as you scroll, or an AI filter that blurs slop, ads, and bait on LinkedIn and X.
 
-Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/look-away): bold color field, rounded corners, black icon on top.
+Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/look-away): bold color field, rounded corners, a zoned-out black face on top.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -11,22 +11,31 @@ Inspired by the visual language of [Look Away](https://github.com/dvdcarlomagno/
 - **LinkedIn & X** — counts each post once when ≥25% is visible, or any part stays visible for 800ms
 - **YouTube** — counts each distinct video when playback starts
 - **Combined daily total** across all three platforms
-- **Yellow overlay** — two styles: **Growing bar** (starts as a 1px line; height scales with today's total vs your max) or **Fading screen** (covers the page; opacity matches today's total vs your max, 0% → 100%). Black eye icon + count stay centered.
-- **Wind down** — after a set local time (default 7:00 PM), the overlay covers the screen until midnight regardless of post count, and shows **Wind down** instead of the number; the time can only be changed before wind down starts
-- **Popup** — per-platform breakdown, total vs max, overlay style, editable daily limit (default 100) and wind-down time
-- **Local-only** — `chrome.storage.local`, resets at local midnight
+- **Three modes** — **Bar** (a yellow bar that starts as a 1px line; height scales with today's total vs your max), **Fade** (covers the page; opacity matches today's total vs your max, 0% → 100%), or **AI filter** (no overlay; flagged posts are blurred in place). The face icon and count stay centered on the overlay.
+- **AI filter (LinkedIn & X)** — each post is classified in real time by TypeSafe's [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) model before it scrolls into view. Posts it flags are blurred behind a yellow pill (e.g. `AI slop · 91%`) with a **Show** button. Categories: AI slop, Promoted, Engagement bait, Humblebrag, Rage bait, Scam — each toggleable, with an adjustable confidence threshold (default 70%). Posts labelled **Promoted** / **Ad** are blurred locally with no API call.
+- **Wind down** — after a set local time (default 7:00 PM), the overlay covers the screen until midnight regardless of post count or mode, and shows **Wind down** instead of the number; the time can only be changed before wind down starts
+- **Popup** — today's total with a progress meter, per-platform counts, mode switcher, AI filter panel (blocked-today counts per category, API key, threshold), and a collapsible **Limits** section (daily limit, default 100, and wind-down time)
+- **Local-first** — counts and settings live in `chrome.storage.local` and reset at local midnight
+
+## AI filter setup
+
+1. Get an early-access API key from [TypeSafe](https://typesafe.ai).
+2. Open the popup, pick **AI filter**, paste the key, and press **Test**.
+3. Scroll LinkedIn or X. Classifications are cached per post for the day, and at most 4 requests run at once.
+
+**Privacy:** in AI filter mode, the text and author name of LinkedIn and X posts near your viewport are sent to `api.typesafe.ai`. Your key is stored in `chrome.storage.local` and only the extension's service worker uses it. Bar and Fade modes send nothing anywhere.
 
 ## Install (load unpacked)
 
 **Download the latest release zip:**  
-[dumbscroll-v2.1.3.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.1.3.zip)
+[dumbscroll-v2.2.0.zip](https://github.com/dvdcarlomagno/dumbscroll/archive/refs/tags/v2.2.0.zip)
 
 Unzip, then:
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the unzipped `dumbscroll-2.1.3` folder
+4. Select the unzipped `dumbscroll-2.2.0` folder
 5. After updates, click **Reload** and refresh open tabs
 
 Or clone from source:
@@ -45,10 +54,13 @@ cd dumbscroll
 | Yellow light | `#FFED66` |
 | Ink | `#111111` |
 
+The logo is a zoned-out face: half-lidded eyes and a drool drop, black on the yellow squircle. `icons/logo.svg` is the vector source (also used in the popup and overlay).
+
 Regenerate extension icons:
 
 ```bash
-swift scripts/generate_icons.swift icons
+swift scripts/generate_icons.swift icons            # zoned face (default)
+swift scripts/generate_icons.swift icons/preview all  # preview every face variant
 ```
 
 ## Project structure
@@ -57,7 +69,10 @@ swift scripts/generate_icons.swift icons
 dumbscroll/
 ├── manifest.json
 ├── background.js
+├── background/
+│   └── classifier.js      # Jev calls, cache, concurrency, blocked counts
 ├── icons/
+│   └── logo.svg
 ├── scripts/generate_icons.swift
 ├── content/
 │   ├── shared/
@@ -66,7 +81,9 @@ dumbscroll/
 │   │   ├── storage.js
 │   │   ├── overlay.js
 │   │   ├── limit-lock.js
-│   │   └── post-tracker.js
+│   │   ├── post-tracker.js
+│   │   ├── filter-core.js  # categories, Jev request, threshold decision
+│   │   └── post-filter.js  # blur + reveal pill on flagged posts
 │   ├── linkedin.js
 │   ├── x.js
 │   └── youtube.js

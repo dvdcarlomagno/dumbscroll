@@ -1,8 +1,9 @@
 const DumbscrollOverlayMode = (() => {
   const GROW = "grow";
   const FADE = "fade";
+  const FILTER = "filter";
   const DEFAULT_OVERLAY_MODE = GROW;
-  const MODES = [GROW, FADE];
+  const MODES = [GROW, FADE, FILTER];
 
   function normalizeOverlayMode(value) {
     if (typeof value !== "string") {
@@ -17,12 +18,19 @@ const DumbscrollOverlayMode = (() => {
     return normalizeOverlayMode(mode) === FADE;
   }
 
+  function isFilter(mode) {
+    return normalizeOverlayMode(mode) === FILTER;
+  }
+
   return {
     GROW,
     FADE,
+    FILTER,
+    MODES,
     DEFAULT_OVERLAY_MODE,
     normalizeOverlayMode,
     isFade,
+    isFilter,
   };
 })();
 

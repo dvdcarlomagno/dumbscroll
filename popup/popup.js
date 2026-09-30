@@ -77,10 +77,12 @@ function updateLimitControl(total, dailyMax) {
 }
 
 function dailyMaxHelpText(overlayMode) {
-  const fill =
-    overlayMode === DumbscrollOverlayMode.FADE
-      ? "At this total, the yellow screen is fully opaque."
-      : "At this total, the yellow bar fills the full screen height.";
+  const fills = {
+    [DumbscrollOverlayMode.FADE]: "At this total, the yellow screen is fully opaque.",
+    [DumbscrollOverlayMode.FILTER]:
+      "In AI filter mode the yellow overlay stays off, but today's total still counts toward this max.",
+  };
+  const fill = fills[overlayMode] ?? "At this total, the yellow bar fills the full screen height.";
 
   return `${fill} You can change the limit only while below 50% of today's usage.`;
 }
@@ -107,6 +109,10 @@ function overlayModeHelpText(overlayMode) {
     return "The yellow screen covers the page. Opacity matches posts seen vs your daily max.";
   }
 
+  if (overlayMode === DumbscrollOverlayMode.FILTER) {
+    return "No overlay. Jev blurs AI slop, promoted posts, and bait on LinkedIn and X as you scroll.";
+  }
+
   return "The yellow bar starts as a thin line and grows with posts you've seen.";
 }
 
@@ -126,6 +132,11 @@ function updateOverlayModeControl(overlayMode) {
   const mode = normalizeOverlayMode(overlayMode);
   setSelectedOverlayMode(mode);
   document.getElementById("overlay-mode-help").textContent = overlayModeHelpText(mode);
+
+  const filterPanel = document.getElementById("filter-panel");
+  if (filterPanel) {
+    filterPanel.hidden = mode !== DumbscrollOverlayMode.FILTER;
+  }
 }
 
 function overlayModeFromStorage(storedMode) {
@@ -265,6 +276,7 @@ async function render() {
     LEGACY_STATE_KEY,
     SETTINGS_KEY,
     LEGACY_SETTINGS_KEY,
+    DumbscrollFilterCore.DAY_KEY,
   ]);
 
   const doomscroll = stored[STATE_KEY] ?? stored[LEGACY_STATE_KEY];
@@ -283,7 +295,16 @@ async function render() {
   document.getElementById("count-linkedin").textContent = counts.linkedin;
   document.getElementById("count-x").textContent = counts.x;
   document.getElementById("count-youtube").textContent = counts.youtube;
-  document.getElementById("count-total").textContent = `${total} / ${dailyMax}`;
+  document.getElementById("count-total").textContent = String(total);
+  setText("max-label", String(dailyMax));
+  setText("limits-summary", `${dailyMax} posts · ${windDownTime}`);
+
+  const meterFill = document.getElementById("meter-fill");
+  if (meterFill) {
+    meterFill.style.width = `${Math.min(total / dailyMax, 1) * 100}%`;
+  }
+
+  renderFilterDay(DumbscrollFilterCore.normalizeDay(stored[DumbscrollFilterCore.DAY_KEY], today));
 
   const maxInput = document.getElementById("daily-max");
   if (!maxInput.matches(":focus")) {
@@ -345,6 +366,180 @@ async function saveOverlayMode(
   }
 }
 
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.textContent = text;
+  }
+}
+
+let filterSettings = DumbscrollFilterCore.normalizeSettings(null);
+let filterSaveTimer = null;
+let lastFilterStatus = null;
+
+function thresholdLabel(threshold) {
+  return `${Math.round(threshold * 100)}%`;
+}
+
+function renderFilterStatus() {
+  const el = document.getElementById("jev-status");
+  if (!el) {
+    return;
+  }
+
+  let text = "";
+  let tone = "";
+  if (!filterSettings.apiKey) {
+    text = "Add your TypeSafe API key to start filtering. Promoted/Ad labels work without it.";
+  } else if (lastFilterStatus) {
+    text = lastFilterStatus.message;
+    tone = lastFilterStatus.ok ? "is-ok" : "is-error";
+  }
+
+  el.textContent = text;
+  el.classList.toggle("is-ok", tone === "is-ok");
+  el.classList.toggle("is-error", tone === "is-error");
+}
+
+function renderFilterDay(day) {
+  lastFilterStatus = day.status;
+  let total = 0;
+  DumbscrollFilterCore.CATEGORY_IDS.forEach((id) => {
+    const count = day.blocked[id] ?? 0;
+    total += count;
+    setText(`blocked-${id}`, String(count));
+  });
+  setText("blocked-total", String(total));
+  renderFilterStatus();
+}
+
+function renderFilterSettings() {
+  const keyInput = document.getElementById("jev-key");
+  if (!keyInput) {
+    return;
+  }
+
+  if (!keyInput.matches(":focus")) {
+    keyInput.value = filterSettings.apiKey;
+  }
+
+  DumbscrollFilterCore.CATEGORY_IDS.forEach((id) => {
+    const toggle = document.getElementById(`toggle-${id}`);
+    if (toggle) {
+      toggle.checked = filterSettings.enabled[id];
+    }
+  });
+
+  const threshold = document.getElementById("jev-threshold");
+  if (!threshold.matches(":active")) {
+    threshold.value = String(filterSettings.threshold);
+  }
+  setText("jev-threshold-value", thresholdLabel(filterSettings.threshold));
+  renderFilterStatus();
+}
+
+async function loadFilterSettings() {
+  const { [DumbscrollFilterCore.SETTINGS_KEY]: raw } = await chrome.storage.local.get(
+    DumbscrollFilterCore.SETTINGS_KEY
+  );
+  filterSettings = DumbscrollFilterCore.normalizeSettings(raw);
+  renderFilterSettings();
+}
+
+async function saveFilterSettings(partial) {
+  filterSettings = DumbscrollFilterCore.normalizeSettings({
+    ...filterSettings,
+    ...partial,
+    enabled: { ...filterSettings.enabled, ...partial.enabled },
+  });
+  renderFilterSettings();
+  await chrome.storage.local.set({ [DumbscrollFilterCore.SETTINGS_KEY]: filterSettings });
+}
+
+function buildCategoryList() {
+  const list = document.getElementById("filter-categories");
+  if (!list) {
+    return;
+  }
+
+  DumbscrollFilterCore.CATEGORIES.forEach((category) => {
+    const item = document.createElement("li");
+    const label = document.createElement("label");
+    label.className = "category";
+
+    const toggle = document.createElement("input");
+    toggle.type = "checkbox";
+    toggle.className = "toggle";
+    toggle.id = `toggle-${category.id}`;
+    toggle.addEventListener("change", () => {
+      saveFilterSettings({ enabled: { [category.id]: toggle.checked } });
+    });
+
+    const name = document.createElement("span");
+    name.className = "category-name";
+    name.textContent = category.label;
+
+    const count = document.createElement("span");
+    count.className = "category-count";
+    count.id = `blocked-${category.id}`;
+    count.textContent = "0";
+
+    label.append(toggle, name, count);
+    item.append(label);
+    list.append(item);
+  });
+}
+
+function bindFilterControls() {
+  const keyInput = document.getElementById("jev-key");
+  if (!keyInput) {
+    return;
+  }
+
+  buildCategoryList();
+
+  keyInput.addEventListener("input", () => {
+    clearTimeout(filterSaveTimer);
+    filterSaveTimer = setTimeout(() => {
+      lastFilterStatus = null;
+      saveFilterSettings({ apiKey: keyInput.value });
+    }, 400);
+  });
+
+  keyInput.addEventListener("change", () => {
+    clearTimeout(filterSaveTimer);
+    saveFilterSettings({ apiKey: keyInput.value });
+  });
+
+  const threshold = document.getElementById("jev-threshold");
+  threshold.addEventListener("input", () => {
+    setText(
+      "jev-threshold-value",
+      thresholdLabel(DumbscrollFilterCore.clampThreshold(threshold.value))
+    );
+  });
+  threshold.addEventListener("change", () => {
+    saveFilterSettings({ threshold: threshold.value });
+  });
+
+  const testButton = document.getElementById("jev-test");
+  testButton.addEventListener("click", async () => {
+    clearTimeout(filterSaveTimer);
+    await saveFilterSettings({ apiKey: keyInput.value });
+    testButton.disabled = true;
+    setText("jev-status", "Testing…");
+    try {
+      const result = await chrome.runtime.sendMessage({ type: "dumbscroll:test-key" });
+      lastFilterStatus = result;
+    } catch {
+      lastFilterStatus = { ok: false, message: "Could not reach the extension background" };
+    } finally {
+      testButton.disabled = false;
+      renderFilterStatus();
+    }
+  });
+}
+
 function bindPopupControls() {
   const maxInput = document.getElementById("daily-max");
   const windDownInput = document.getElementById("wind-down");
@@ -394,13 +589,18 @@ function bindPopupControls() {
       if (changes[SETTINGS_KEY] || changes[LEGACY_SETTINGS_KEY]) {
         loadSettings();
       }
+      if (changes[DumbscrollFilterCore.SETTINGS_KEY]) {
+        loadFilterSettings();
+      }
     }
   });
 }
 
 function initPopup() {
   bindPopupControls();
+  bindFilterControls();
   loadSettings();
+  loadFilterSettings();
   render();
 }
 

@@ -1,4 +1,4 @@
-/* global chrome, DumbscrollWindDown, DumbscrollOverlayMode */
+/* global chrome, DumbscrollWindDown, DumbscrollOverlayMode, DumbscrollFilterCore */
 const DumbscrollStorage = (() => {
   const PLATFORMS = ["linkedin", "x", "youtube"];
   const DEFAULT_DAILY_MAX = 100;
@@ -72,7 +72,7 @@ const DumbscrollStorage = (() => {
       return DumbscrollOverlayMode.normalizeOverlayMode(value);
     }
 
-    return value === "fade" ? "fade" : DEFAULT_OVERLAY_MODE;
+    return value === "fade" || value === "filter" ? value : DEFAULT_OVERLAY_MODE;
   }
 
   async function getSettings() {
@@ -146,6 +146,27 @@ const DumbscrollStorage = (() => {
     return state.counts[platform] ?? 0;
   }
 
+  async function getFilterSettings() {
+    const { dumbscrollFilter } = await chrome.storage.local.get("dumbscrollFilter");
+    return DumbscrollFilterCore.normalizeSettings(dumbscrollFilter);
+  }
+
+  async function setFilterSettings(partial) {
+    const current = await getFilterSettings();
+    const next = DumbscrollFilterCore.normalizeSettings({
+      ...current,
+      ...partial,
+      enabled: { ...current.enabled, ...partial?.enabled },
+    });
+    await chrome.storage.local.set({ dumbscrollFilter: next });
+    return next;
+  }
+
+  async function getFilterDay() {
+    const { dumbscrollFilterDay } = await chrome.storage.local.get("dumbscrollFilterDay");
+    return DumbscrollFilterCore.normalizeDay(dumbscrollFilterDay, todayKey());
+  }
+
   return {
     getState,
     getCount,
@@ -155,6 +176,9 @@ const DumbscrollStorage = (() => {
     getWindDownTime,
     getOverlayMode,
     increment,
+    getFilterSettings,
+    setFilterSettings,
+    getFilterDay,
     todayKey,
     PLATFORMS,
     DEFAULT_DAILY_MAX,

@@ -7,85 +7,115 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header class="brand-header">
-      <img src="../icons/icon-48.png" alt="" class="brand-icon" width="40" height="40" />
-      <div>
+    <header class="top">
+      <div class="brand">
+        <img src="../icons/logo.svg" alt="" class="brand-icon" width="26" height="26" />
         <h1>Dumbscroll</h1>
-        <p id="date-label"></p>
       </div>
+      <p id="date-label"></p>
     </header>
 
-    <ul class="counts">
-      <li>
-        <span class="platform">LinkedIn</span>
-        <span class="count" id="count-linkedin">0</span>
-      </li>
-      <li>
-        <span class="platform">X</span>
-        <span class="count" id="count-x">0</span>
-      </li>
-      <li>
-        <span class="platform">YouTube</span>
-        <span class="count" id="count-youtube">0</span>
-      </li>
-    </ul>
+    <section class="hero" aria-label="Today's usage">
+      <div class="hero-row">
+        <strong id="count-total">0</strong>
+        <span class="hero-max">/ <span id="max-label">100</span> today</span>
+      </div>
+      <div class="meter" aria-hidden="true"><div id="meter-fill" class="meter-fill"></div></div>
+      <ul class="counts">
+        <li>
+          <span class="count" id="count-linkedin">0</span>
+          <span class="platform">LinkedIn</span>
+        </li>
+        <li>
+          <span class="count" id="count-x">0</span>
+          <span class="platform">X</span>
+        </li>
+        <li>
+          <span class="count" id="count-youtube">0</span>
+          <span class="platform">YouTube</span>
+        </li>
+      </ul>
+    </section>
 
-    <footer class="total-card">
-      <span>Total</span>
-      <strong id="count-total">0</strong>
-    </footer>
+    <section class="card">
+      <div class="card-head">
+        <p class="card-title" id="overlay-mode-label">Mode</p>
+        <span id="overlay-mode-status" class="status" aria-live="polite"></span>
+      </div>
+      <div class="segmented" role="radiogroup" aria-labelledby="overlay-mode-label">
+        <label>
+          <input type="radio" name="overlay-mode" value="grow" checked />
+          <span>Bar</span>
+        </label>
+        <label>
+          <input type="radio" name="overlay-mode" value="fade" />
+          <span>Fade</span>
+        </label>
+        <label>
+          <input type="radio" name="overlay-mode" value="filter" />
+          <span>AI filter</span>
+        </label>
+      </div>
+      <p id="overlay-mode-help" class="help">Choose how Dumbscroll shows up in your feed.</p>
+    </section>
 
-    <section class="settings">
-      <label for="daily-max">Daily max (combined)</label>
+    <section class="card" id="filter-panel" hidden>
+      <div class="card-head">
+        <p class="card-title">Blocked today</p>
+        <strong id="blocked-total" class="blocked-total">0</strong>
+      </div>
+
+      <ul id="filter-categories" class="categories"></ul>
+
+      <label for="jev-threshold" class="field-label">
+        Confidence needed
+        <span id="jev-threshold-value" class="field-value"></span>
+      </label>
+      <input id="jev-threshold" type="range" min="0.5" max="0.95" step="0.05" />
+
+      <label for="jev-key" class="field-label">TypeSafe API key</label>
+      <div class="settings-row">
+        <input id="jev-key" type="password" autocomplete="off" spellcheck="false" placeholder="ts_…" />
+        <button id="jev-test" type="button" class="button">Test</button>
+      </div>
+      <p id="jev-status" class="help" aria-live="polite"></p>
+      <p class="help fine">
+        Post text and author name from LinkedIn and X are sent to TypeSafe's Jev model to classify
+        them. Posts labelled Promoted or Ad are blurred locally.
+      </p>
+    </section>
+
+    <details class="card limits" id="limits">
+      <summary>
+        <span class="card-title">Limits</span>
+        <span id="limits-summary" class="limits-summary"></span>
+      </summary>
+
+      <label for="daily-max" class="field-label">Daily max (combined)</label>
       <div class="settings-row">
         <input id="daily-max" type="number" min="1" max="9999" step="1" />
-        <span id="max-status" class="max-status" aria-live="polite"></span>
+        <span id="max-status" class="status" aria-live="polite"></span>
       </div>
-      <p id="settings-help" class="settings-help">
+      <p id="settings-help" class="help">
         At this total, the yellow bar fills the full screen height. You can change the limit only
         while below 50% of today's usage.
       </p>
 
-      <p class="settings-label-spaced" id="overlay-mode-label">Yellow overlay</p>
-      <div
-        class="overlay-mode-options"
-        role="radiogroup"
-        aria-labelledby="overlay-mode-label"
-      >
-        <label class="overlay-mode-option">
-          <input type="radio" name="overlay-mode" value="grow" checked />
-          <span>
-            <strong>Growing bar</strong>
-            Height scales with posts you've seen
-          </span>
-        </label>
-        <label class="overlay-mode-option">
-          <input type="radio" name="overlay-mode" value="fade" />
-          <span>
-            <strong>Fading screen</strong>
-            Full screen; opacity matches posts you've seen
-          </span>
-        </label>
-      </div>
-      <p id="overlay-mode-help" class="settings-help">
-        Choose how the yellow overlay shows today's usage.
-      </p>
-      <span id="overlay-mode-status" class="max-status" aria-live="polite"></span>
-
-      <label for="wind-down" class="settings-label-spaced">Wind down</label>
+      <label for="wind-down" class="field-label">Wind down</label>
       <div class="settings-row">
         <input id="wind-down" type="time" />
-        <span id="wind-down-status" class="max-status" aria-live="polite"></span>
+        <span id="wind-down-status" class="status" aria-live="polite"></span>
       </div>
-      <p id="wind-down-help" class="settings-help">
+      <p id="wind-down-help" class="help">
         After this time, the yellow overlay covers the screen until midnight — no matter how many
         posts you've seen. You can change the time only before wind down starts.
       </p>
-    </section>
+    </details>
 
     <script src="../content/shared/wind-down.js"></script>
     <script src="../content/shared/overlay-mode.js"></script>
     <script src="../content/shared/limit-lock.js"></script>
+    <script src="../content/shared/filter-core.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

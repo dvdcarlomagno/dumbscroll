@@ -2,9 +2,20 @@
 import AppKit
 import CoreGraphics
 
-let outputDirectory = CommandLine.arguments.count > 1
-    ? URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+// Usage: swift scripts/generate_icons.swift [outputDir] [variant]
+// Variants: zoned (default), hypno, xeyes, all (writes <variant>-<size>.png previews)
+
+let arguments = CommandLine.arguments
+let outputDirectory = arguments.count > 1
+    ? URL(fileURLWithPath: arguments[1], isDirectory: true)
     : URL(fileURLWithPath: "icons/generated", isDirectory: true)
+let requestedVariant = arguments.count > 2 ? arguments[2] : "zoned"
+
+enum FaceVariant: String, CaseIterable {
+    case zoned
+    case hypno
+    case xeyes
+}
 
 struct IconSpec {
     let filename: String
@@ -17,6 +28,9 @@ private let iconSpecs: [IconSpec] = [
     IconSpec(filename: "icon-48.png", pixelSize: 48),
     IconSpec(filename: "icon-128.png", pixelSize: 128),
 ]
+
+private let ink = CGColor(red: 0.067, green: 0.067, blue: 0.067, alpha: 1.0)
+private let yellow = CGColor(red: 1.0, green: 0.82, blue: 0.0, alpha: 1.0)
 
 private func drawMasterYellowGradient(in context: CGContext, rect: CGRect) {
     let colors = [
@@ -39,7 +53,84 @@ private func drawMasterYellowGradient(in context: CGContext, rect: CGRect) {
     )
 }
 
-private func renderIcon(pixelSize: Int) -> NSImage {
+// All face geometry lives in a 24x24, y-down grid that mirrors icons/logo.svg.
+private func strokeLine(_ context: CGContext, _ points: [CGPoint], width: CGFloat) {
+    guard let first = points.first else { return }
+    context.beginPath()
+    context.move(to: first)
+    points.dropFirst().forEach { context.addLine(to: $0) }
+    context.setLineWidth(width)
+    context.setLineCap(.round)
+    context.setLineJoin(.round)
+    context.setStrokeColor(yellow)
+    context.strokePath()
+}
+
+private func spiralPoints(center: CGPoint, maxRadius: CGFloat, turns: CGFloat) -> [CGPoint] {
+    let steps = 60
+    return (0...steps).map { step in
+        let t = CGFloat(step) / CGFloat(steps)
+        let angle = t * turns * 2 * .pi
+        let radius = t * maxRadius
+        return CGPoint(x: center.x + cos(angle) * radius, y: center.y + sin(angle) * radius)
+    }
+}
+
+private func drawFace(_ context: CGContext, variant: FaceVariant, simplified: Bool) {
+    context.setFillColor(ink)
+    context.fillEllipse(in: CGRect(x: 4, y: 4, width: 16, height: 16))
+
+    let stroke: CGFloat = simplified ? 1.9 : 1.35
+    let leftEye = CGPoint(x: 9.2, y: 10.6)
+    let rightEye = CGPoint(x: 14.8, y: 10.6)
+
+    switch variant {
+    case .zoned:
+        // Half-lidded eyes: bottom half-discs with a flat lid.
+        let radius: CGFloat = simplified ? 2.1 : 1.9
+        for eye in [leftEye, rightEye] {
+            context.beginPath()
+            context.move(to: CGPoint(x: eye.x - radius, y: eye.y))
+            context.addArc(center: eye, radius: radius, startAngle: .pi, endAngle: 0, clockwise: true)
+            context.closePath()
+            context.setFillColor(yellow)
+            context.fillPath()
+        }
+        if !simplified {
+            strokeLine(context, [CGPoint(x: 9.4, y: 15.2), CGPoint(x: 13.6, y: 14.9)], width: stroke)
+            // Drool drop below the right corner of the mouth.
+            context.beginPath()
+            context.move(to: CGPoint(x: 13.8, y: 16.1))
+            context.addQuadCurve(to: CGPoint(x: 13.2, y: 17.5), control: CGPoint(x: 13.2, y: 16.9))
+            context.addArc(center: CGPoint(x: 13.8, y: 17.5), radius: 0.6, startAngle: .pi, endAngle: 0, clockwise: true)
+            context.addQuadCurve(to: CGPoint(x: 13.8, y: 16.1), control: CGPoint(x: 14.4, y: 16.9))
+            context.setFillColor(yellow)
+            context.fillPath()
+        }
+    case .hypno:
+        for eye in [leftEye, rightEye] {
+            strokeLine(context, spiralPoints(center: eye, maxRadius: simplified ? 2.0 : 2.1, turns: simplified ? 1.6 : 2.2), width: simplified ? 1.3 : 0.9)
+        }
+        if !simplified {
+            strokeLine(context, [CGPoint(x: 9.5, y: 15.6), CGPoint(x: 14.5, y: 15.6)], width: stroke)
+        }
+    case .xeyes:
+        let arm: CGFloat = simplified ? 1.6 : 1.5
+        for eye in [leftEye, rightEye] {
+            strokeLine(context, [CGPoint(x: eye.x - arm, y: eye.y - arm), CGPoint(x: eye.x + arm, y: eye.y + arm)], width: stroke)
+            strokeLine(context, [CGPoint(x: eye.x - arm, y: eye.y + arm), CGPoint(x: eye.x + arm, y: eye.y - arm)], width: stroke)
+        }
+        if !simplified {
+            let wobble = (0...24).map { step -> CGPoint in
+                let t = CGFloat(step) / 24
+                return CGPoint(x: 9.0 + t * 6.0, y: 15.5 + sin(t * 3 * .pi) * 0.55)
+            }
+            strokeLine(context, wobble, width: stroke)
+        }
+    }
+}
+
+private func renderIcon(pixelSize: Int, variant: FaceVariant) -> NSImage {
     let dimension = CGFloat(pixelSize)
     let image = NSImage(size: NSSize(width: dimension, height: dimension))
 
@@ -59,23 +150,17 @@ private func renderIcon(pixelSize: Int) -> NSImage {
 
     drawMasterYellowGradient(in: context, rect: rect)
 
-    let pointSize = max(8, dimension * 0.44)
-    let symbolConfig = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .bold)
-        .applying(.init(paletteColors: [.black]))
-
-    guard
-        let baseSymbol = NSImage(systemSymbolName: "eye.fill", accessibilityDescription: "Dumbscroll"),
-        let symbol = baseSymbol.withSymbolConfiguration(symbolConfig)
-    else {
-        return image
-    }
-
-    let symbolSize = symbol.size
-    let origin = NSPoint(
-        x: (dimension - symbolSize.width) / 2,
-        y: (dimension - symbolSize.height) / 2
-    )
-    symbol.draw(at: origin, from: .zero, operation: .sourceOver, fraction: 1.0)
+    // Small icons get a bigger face so the eyes survive downsampling.
+    let simplified = pixelSize <= 16
+    let faceScale: CGFloat = simplified ? 1.3 : 1.12
+    context.saveGState()
+    context.translateBy(x: 0, y: dimension)
+    context.scaleBy(x: dimension / 24, y: -dimension / 24)
+    context.translateBy(x: 12, y: 12)
+    context.scaleBy(x: faceScale, y: faceScale)
+    context.translateBy(x: -12, y: -12)
+    drawFace(context, variant: variant, simplified: simplified)
+    context.restoreGState()
 
     return image
 }
@@ -94,10 +179,23 @@ private func savePNG(_ image: NSImage, to url: URL) throws {
 do {
     try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
 
-    for spec in iconSpecs {
-        let image = renderIcon(pixelSize: spec.pixelSize)
-        let destination = outputDirectory.appendingPathComponent(spec.filename)
-        try savePNG(image, to: destination)
+    if requestedVariant == "all" {
+        for variant in FaceVariant.allCases {
+            for spec in iconSpecs {
+                let image = renderIcon(pixelSize: spec.pixelSize, variant: variant)
+                let name = "\(variant.rawValue)-\(spec.pixelSize).png"
+                try savePNG(image, to: outputDirectory.appendingPathComponent(name))
+            }
+        }
+    } else {
+        guard let variant = FaceVariant(rawValue: requestedVariant) else {
+            fputs("Unknown variant \(requestedVariant)\n", stderr)
+            exit(1)
+        }
+        for spec in iconSpecs {
+            let image = renderIcon(pixelSize: spec.pixelSize, variant: variant)
+            try savePNG(image, to: outputDirectory.appendingPathComponent(spec.filename))
+        }
     }
 
     fputs("Generated Dumbscroll icons in \(outputDirectory.path)\n", stderr)

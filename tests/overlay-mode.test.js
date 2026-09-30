@@ -4,9 +4,11 @@ const assert = require("node:assert/strict");
 const {
   GROW,
   FADE,
+  FILTER,
   DEFAULT_OVERLAY_MODE,
   normalizeOverlayMode,
   isFade,
+  isFilter,
 } = require("../content/shared/overlay-mode.js");
 
 test("default overlay mode is grow", () => {
@@ -30,4 +32,11 @@ test("isFade is true only for fade mode", () => {
   assert.equal(isFade("fade"), true);
   assert.equal(isFade("grow"), false);
   assert.equal(isFade("nope"), false);
+});
+
+test("filter is a valid mode", () => {
+  assert.equal(FILTER, "filter");
+  assert.equal(normalizeOverlayMode(" Filter "), FILTER);
+  assert.equal(isFilter("filter"), true);
+  assert.equal(isFilter("fade"), false);
 });
