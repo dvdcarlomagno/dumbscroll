@@ -79,18 +79,17 @@ const DumbscrollClassifier = (() => {
     }
 
     async function callJev(settings, post) {
-      const provider = core.providerFor(settings.provider);
       const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
       const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
 
       try {
-        const response = await fetchImpl(provider.endpoint, {
+        const response = await fetchImpl(core.ENDPOINT, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${settings.apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(core.buildJevRequest(post, provider.id)),
+          body: JSON.stringify(core.buildJevRequest(post)),
           signal: controller?.signal,
         });
 

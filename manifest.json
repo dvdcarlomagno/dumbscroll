@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dumbscroll",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Track how many social posts and videos you scroll each day, and blur AI slop, promoted posts, and bait on LinkedIn and X.",
   "permissions": ["storage"],
   "host_permissions": [
@@ -11,8 +11,7 @@
     "https://twitter.com/*",
     "https://www.youtube.com/*",
     "https://youtube.com/*",
-    "https://openrouter.ai/*",
-    "https://api.typesafe.ai/*"
+    "https://openrouter.ai/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -33,6 +32,19 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*.woff2"],
+      "matches": [
+        "https://www.linkedin.com/*",
+        "https://linkedin.com/*",
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://www.youtube.com/*",
+        "https://youtube.com/*"
+      ]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["https://www.linkedin.com/*", "https://linkedin.com/*"],

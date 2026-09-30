@@ -55,13 +55,21 @@ test("request body asks one noul per category with the post as state", () => {
   const body = core.buildJevRequest({ platform: "x", author: "Guru", text: `  ${SLOP}  ` });
 
   assert.equal(body.model, "~typesafe/jev-latest");
-  assert.equal(core.buildJevRequest({ text: SLOP }, "typesafe").model, "jev-latest");
   assert.deepEqual(body.state, { platform: "x", author: "Guru", post: SLOP });
   assert.deepEqual(Object.keys(body.questions), core.CATEGORY_IDS);
   Object.values(body.questions).forEach((question) => {
     assert.equal(question.type, "noul");
     assert.ok(question.instructions.length > 20);
+    assert.ok(question.criteria.true.length > 20);
+    assert.ok(question.criteria.false.length > 20);
   });
+});
+
+test("humblebrag needs 90% even when the global threshold is lower", () => {
+  assert.equal(core.decide({ humblebrag: 0.85 }, { threshold: 0.7 }).flagged, false);
+  assert.equal(core.decide({ humblebrag: 0.92 }, { threshold: 0.7 }).category, "humblebrag");
+  assert.equal(core.thresholdFor("humblebrag", 0.95), 0.95);
+  assert.equal(core.thresholdFor("ai_slop", 0.7), 0.7);
 });
 
 test("decide flags the highest enabled category at or above threshold", () => {
@@ -168,34 +176,10 @@ test("revealed posts stay revealed and limit Jev to 4 concurrent requests", asyn
   assert.equal(storage.data.dumbscrollFilterDay.blocked.ai_slop, 10);
 });
 
-test("keys are stored per provider and default to OpenRouter", () => {
-  const defaults = core.normalizeSettings(null);
-  assert.equal(defaults.provider, "openrouter");
-  assert.equal(defaults.apiKey, "");
-
-  const settings = core.normalizeSettings({
-    provider: "typesafe",
-    apiKeys: { openrouter: " sk-or-1 ", typesafe: "ts-1" },
-  });
-  assert.equal(settings.apiKey, "ts-1");
-  assert.equal(settings.apiKeys.openrouter, "sk-or-1");
-
-  assert.equal(core.normalizeSettings({ provider: "nope", apiKey: "legacy" }).apiKeys.openrouter, "legacy");
-});
-
-test("TypeSafe provider calls the TypeSafe endpoint with its own key", async () => {
-  const storage = createStorage({
-    dumbscrollFilter: { provider: "typesafe", apiKeys: { openrouter: "or", typesafe: "ts" } },
-  });
-  const { fetchImpl, calls } = createFetch({ scam: 0.9 });
-  const classifier = DumbscrollClassifier.create({ storage, fetchImpl, core });
-
-  const decision = await classifier.classify({ platform: "x", id: "t1", text: SLOP });
-
-  assert.equal(decision.category, "scam");
-  assert.equal(calls[0].url, "https://api.typesafe.ai/v1/systemone");
-  assert.equal(calls[0].init.headers.Authorization, "Bearer ts");
-  assert.equal(calls[0].body.model, "jev-latest");
+test("OpenRouter key migrates from the 2.2.0 per-provider shape", () => {
+  assert.equal(core.normalizeSettings(null).apiKey, "");
+  assert.equal(core.normalizeSettings({ apiKeys: { openrouter: " sk-or-1 ", typesafe: "ts" } }).apiKey, "sk-or-1");
+  assert.equal(core.normalizeSettings({ apiKey: "sk-or-2" }).apiKey, "sk-or-2");
 });
 
 test("OpenRouter 402 surfaces as out of credits", async () => {

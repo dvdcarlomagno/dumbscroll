@@ -35,7 +35,7 @@ function createFakeDocument() {
     "overlay-mode-help": { textContent: "" },
     "overlay-mode-status": { textContent: "" },
     "settings-help": { textContent: "" },
-    "wind-down-help": { textContent: "" },
+    "wind-down-help": { textContent: "", classList: createClassList() },
     "max-status": { textContent: "" },
     "wind-down-status": { textContent: "" },
     "date-label": { textContent: "" },

@@ -3,15 +3,16 @@ import AppKit
 import CoreGraphics
 
 // Usage: swift scripts/generate_icons.swift [outputDir] [variant]
-// Variants: zoned (default), hypno, xeyes, all (writes <variant>-<size>.png previews)
+// Variants: woozy (default), zoned, hypno, xeyes, all (writes <variant>-<size>.png previews)
 
 let arguments = CommandLine.arguments
 let outputDirectory = arguments.count > 1
     ? URL(fileURLWithPath: arguments[1], isDirectory: true)
     : URL(fileURLWithPath: "icons/generated", isDirectory: true)
-let requestedVariant = arguments.count > 2 ? arguments[2] : "zoned"
+let requestedVariant = arguments.count > 2 ? arguments[2] : "woozy"
 
 enum FaceVariant: String, CaseIterable {
+    case woozy
     case zoned
     case hypno
     case xeyes
@@ -31,6 +32,7 @@ private let iconSpecs: [IconSpec] = [
 
 private let ink = CGColor(red: 0.067, green: 0.067, blue: 0.067, alpha: 1.0)
 private let yellow = CGColor(red: 1.0, green: 0.82, blue: 0.0, alpha: 1.0)
+private let blush = CGColor(red: 1.0, green: 0.42, blue: 0.36, alpha: 1.0)
 
 private func drawMasterYellowGradient(in context: CGContext, rect: CGRect) {
     let colors = [
@@ -85,6 +87,34 @@ private func drawFace(_ context: CGContext, variant: FaceVariant, simplified: Bo
     let rightEye = CGPoint(x: 14.8, y: 10.6)
 
     switch variant {
+    case .woozy:
+        // 🥴: one droopy half-open eye, one squeezed eye, blush, wavy mouth.
+        if !simplified {
+            context.setFillColor(blush)
+            context.fillEllipse(in: CGRect(x: 5.6, y: 12.9, width: 2.8, height: 1.7))
+            context.fillEllipse(in: CGRect(x: 15.6, y: 12.9, width: 2.8, height: 1.7))
+        }
+        let big: CGFloat = simplified ? 2.3 : 2.2
+        let droopy = CGPoint(x: 9.0, y: 10.2)
+        context.saveGState()
+        context.translateBy(x: droopy.x, y: droopy.y)
+        context.rotate(by: -0.3)
+        context.beginPath()
+        context.move(to: CGPoint(x: -big, y: 0))
+        context.addArc(center: .zero, radius: big, startAngle: .pi, endAngle: 0, clockwise: true)
+        context.closePath()
+        context.setFillColor(yellow)
+        context.fillPath()
+        context.restoreGState()
+        // Squeezed eye: a tight "<" pointing at the nose.
+        strokeLine(context, [CGPoint(x: 16.2, y: 8.9), CGPoint(x: 13.9, y: 10.1), CGPoint(x: 15.9, y: 11.3)].map { CGPoint(x: $0.x + (simplified ? 0.2 : 0), y: $0.y) }, width: stroke)
+        if !simplified {
+            let wobble = (0...32).map { step -> CGPoint in
+                let t = CGFloat(step) / 32
+                return CGPoint(x: 8.6 + t * 6.8, y: 15.7 - t * 0.5 + sin(t * 3 * .pi) * 0.6)
+            }
+            strokeLine(context, wobble, width: stroke)
+        }
     case .zoned:
         // Half-lidded eyes: bottom half-discs with a flat lid.
         let radius: CGFloat = simplified ? 2.1 : 1.9
@@ -158,6 +188,9 @@ private func renderIcon(pixelSize: Int, variant: FaceVariant) -> NSImage {
     context.scaleBy(x: dimension / 24, y: -dimension / 24)
     context.translateBy(x: 12, y: 12)
     context.scaleBy(x: faceScale, y: faceScale)
+    if variant == .woozy {
+        context.rotate(by: -0.14)
+    }
     context.translateBy(x: -12, y: -12)
     drawFace(context, variant: variant, simplified: simplified)
     context.restoreGState()

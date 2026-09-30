@@ -1,7 +1,6 @@
 /* global chrome, DumbscrollFilterCore, DumbscrollOverlayMode */
 const DumbscrollPostFilter = (() => {
   const PRELOAD_MARGIN = "1500px 0px";
-  const FILTERED_CLASS = "dumbscroll-filtered";
   const PILL_CLASS = "dumbscroll-pill";
   const MAX_TEXT_NODES = 400;
 
@@ -34,7 +33,6 @@ const DumbscrollPostFilter = (() => {
     }
 
     function unfilter(el) {
-      el.classList.remove(FILTERED_CLASS);
       removePill(el);
     }
 
@@ -45,7 +43,6 @@ const DumbscrollPostFilter = (() => {
       }
 
       removePill(el);
-      el.classList.add(FILTERED_CLASS);
 
       const pill = document.createElement("div");
       pill.className = PILL_CLASS;
@@ -94,6 +91,11 @@ const DumbscrollPostFilter = (() => {
         return;
       }
 
+      // X recycles article nodes for other tweets; never leave the old tweet's pill behind.
+      if (previous && previous.id !== id) {
+        unfilter(el);
+      }
+
       const post = { platform, id, ...extract(el) };
 
       if (post.isAdLabel && settings.enabled.promoted) {
@@ -129,6 +131,17 @@ const DumbscrollPostFilter = (() => {
 
       tracked.add(el);
       observer.observe(el);
+    }
+
+    function trackedAncestor(node) {
+      let current = node instanceof HTMLElement ? node : node?.parentElement;
+      for (let depth = 0; current && depth < 30; depth += 1) {
+        if (tracked.has(current)) {
+          return current;
+        }
+        current = current.parentElement;
+      }
+      return null;
     }
 
     function scan(root = document) {
@@ -168,12 +181,23 @@ const DumbscrollPostFilter = (() => {
       scan();
 
       new MutationObserver((mutations) => {
+        const changedPosts = new Set();
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
             if (node instanceof HTMLElement && !node.classList.contains(PILL_CLASS)) {
               scan(node);
             }
           });
+
+          const post = trackedAncestor(mutation.target);
+          if (post) {
+            changedPosts.add(post);
+          }
+        });
+        changedPosts.forEach((post) => {
+          if (states.has(post) && states.get(post).id !== getPostId(post)) {
+            evaluate(post);
+          }
         });
       }).observe(document.body, { childList: true, subtree: true });
 
@@ -196,5 +220,5 @@ const DumbscrollPostFilter = (() => {
     return { init, scan };
   }
 
-  return { create, hasExactLabel, FILTERED_CLASS, PILL_CLASS };
+  return { create, hasExactLabel, PILL_CLASS };
 })();

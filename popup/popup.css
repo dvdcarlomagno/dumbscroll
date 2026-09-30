@@ -1,3 +1,17 @@
+@font-face {
+  font-family: "Dumbscroll Gluten";
+  src: url("../fonts/gluten-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Dumbscroll Fredoka";
+  src: url("../fonts/fredoka-latin.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: block;
+}
+
 :root {
   --yellow-deep: #edb100;
   --yellow-mid: #ffd100;
@@ -9,6 +23,24 @@
   --surface: #fbfaf5;
   --card: #ffffff;
   --radius: 16px;
+  --font-woozy: "Dumbscroll Gluten", "Dumbscroll Fredoka", ui-rounded, sans-serif;
+  --font-ui: "Dumbscroll Fredoka", "SF Pro Rounded", ui-rounded, "Segoe UI", sans-serif;
+}
+
+@keyframes woozy {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  25% {
+    transform: rotate(6deg) translateY(-1px);
+  }
+  50% {
+    transform: rotate(-4deg) translateY(1px);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
 }
 
 * {
@@ -22,7 +54,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  font-family: "SF Pro Rounded", "Avenir Next Rounded", ui-rounded, "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
+  font-weight: 500;
   color: var(--ink);
   background: var(--surface);
 }
@@ -47,13 +80,20 @@ body {
 
 .brand-icon {
   border-radius: 7px;
+  transform: rotate(-8deg);
+}
+
+.brand:hover .brand-icon {
+  animation: woozy 0.9s ease-in-out;
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 15px;
+  font-family: var(--font-woozy);
+  font-size: 19px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  font-variation-settings: "slnt" 8;
+  letter-spacing: -0.01em;
 }
 
 #date-label {
@@ -80,10 +120,12 @@ body {
 }
 
 #count-total {
-  font-size: 44px;
+  font-family: var(--font-woozy);
+  font-size: 52px;
   font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  font-variation-settings: "slnt" 10;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -118,6 +160,14 @@ body {
   padding: 0;
 }
 
+.counts li:nth-child(1) {
+  transform: rotate(-1.5deg);
+}
+
+.counts li:nth-child(3) {
+  transform: rotate(1.5deg);
+}
+
 .counts li {
   display: flex;
   flex-direction: column;
@@ -128,7 +178,8 @@ body {
 }
 
 .count {
-  font-size: 18px;
+  font-family: var(--font-woozy);
+  font-size: 20px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -156,8 +207,8 @@ body {
 
 .card-title {
   margin: 0;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .status {
@@ -198,11 +249,6 @@ body {
   background: rgba(17, 17, 17, 0.06);
 }
 
-.segmented-2 {
-  grid-template-columns: repeat(2, 1fr);
-  margin-top: 6px;
-}
-
 .segmented label {
   position: relative;
   cursor: pointer;
@@ -222,13 +268,14 @@ body {
   font-weight: 800;
   text-align: center;
   color: var(--ink-soft);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.2s ease;
 }
 
 .segmented input:checked + span {
   color: var(--ink);
   background: var(--yellow-mid);
   box-shadow: 0 2px 6px rgba(17, 17, 17, 0.12);
+  transform: rotate(-1.5deg);
 }
 
 .segmented input:focus-visible + span {
@@ -238,7 +285,8 @@ body {
 
 /* AI filter panel */
 .blocked-total {
-  font-size: 20px;
+  font-family: var(--font-woozy);
+  font-size: 24px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
@@ -316,6 +364,11 @@ body {
   width: 100%;
   margin: 8px 0 0;
   accent-color: var(--ink);
+}
+
+.field-link {
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
 .field-value {
@@ -433,6 +486,25 @@ body {
 }
 
 .button:disabled {
-  opacity: 0.5;
-  cursor: progress;
+  opacity: 0.4;
+  cursor: default;
+}
+
+.button.ghost {
+  color: var(--ink);
+  background: rgba(17, 17, 17, 0.06);
+}
+
+.limits-actions {
+  margin-top: 14px;
+}
+
+.help.is-warning {
+  color: #9a5b00;
+  font-weight: 700;
+}
+
+#limits-summary.is-unsaved::after {
+  content: " · unsaved";
+  color: #9a5b00;
 }

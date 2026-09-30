@@ -1,3 +1,10 @@
+@font-face {
+  font-family: "Dumbscroll Gluten";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/gluten-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 #dumbscroll-counter-overlay {
   --dumbscroll-yellow-deep: #edb100;
   --dumbscroll-yellow-mid: #ffd100;
@@ -44,10 +51,11 @@
   opacity: 0;
   transition: opacity 0.2s ease;
 
-  font-family: "SF Pro Rounded", "Avenir Next Rounded", ui-rounded, "Segoe UI", sans-serif;
+  font-family: "Dumbscroll Gluten", "SF Pro Rounded", ui-rounded, sans-serif;
   font-weight: 800;
+  font-variation-settings: "slnt" 10;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   color: var(--dumbscroll-ink);
   text-align: center;
 }
@@ -62,6 +70,7 @@
   justify-content: center;
   font-size: 0.82em;
   color: var(--dumbscroll-ink);
+  transform: rotate(-6deg);
 }
 
 #dumbscroll-counter-overlay .dumbscroll-counter-value {
@@ -76,14 +85,15 @@
   box-shadow: 0 16px 48px rgba(17, 17, 17, 0.22);
 }
 
-/* AI filter: flagged posts */
-.dumbscroll-filtered {
+/* AI filter: flagged posts. Keyed on the pill, not a class, because X's React
+   re-renders reset className on the post and would drop the blur. */
+:has(> .dumbscroll-pill) {
   position: relative !important;
   overflow: hidden !important;
   min-height: 72px;
 }
 
-.dumbscroll-filtered > :not(.dumbscroll-pill) {
+:has(> .dumbscroll-pill) > :not(.dumbscroll-pill) {
   filter: blur(14px) saturate(0.6);
   pointer-events: none !important;
   user-select: none !important;
@@ -94,7 +104,7 @@
   top: 16px;
   left: 50%;
   z-index: 5;
-  transform: translateX(-50%);
+  transform: translateX(-50%) rotate(-2deg);
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -102,9 +112,10 @@
   border-radius: 999px;
   background: linear-gradient(145deg, #edb100, #ffd100 52%, #ffed66);
   box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
-  font-family: "SF Pro Rounded", "Avenir Next Rounded", ui-rounded, "Segoe UI", sans-serif;
-  font-size: 13px;
-  font-weight: 800;
+  font-family: "Dumbscroll Gluten", "SF Pro Rounded", ui-rounded, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  font-variation-settings: "slnt" 8;
   line-height: 1;
   color: #111111;
   white-space: nowrap;

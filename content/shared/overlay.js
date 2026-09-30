@@ -15,9 +15,14 @@ const DumbscrollOverlay = (() => {
   const MIN_HEIGHT_PX = 1;
   const ICON_SVG = `
     <svg viewBox="4 4 16 16" width="1em" height="1em" aria-hidden="true" focusable="false">
+      <g transform="rotate(-8.02 12 12)">
       <circle cx="12" cy="12" r="8" fill="currentColor"/>
-      <path fill="var(--dumbscroll-yellow-mid)" d="M7.3 10.6a1.9 1.9 0 0 0 3.8 0Z M12.9 10.6a1.9 1.9 0 0 0 3.8 0Z M13.8 16.1Q13.2 16.9 13.2 17.5a0.6 0.6 0 0 0 1.2 0Q14.4 16.9 13.8 16.1Z"/>
-      <path d="M9.4 15.2 13.6 14.9" stroke="var(--dumbscroll-yellow-mid)" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <ellipse cx="7" cy="13.75" rx="1.4" ry="0.85" fill="#FF6B5C"/>
+      <ellipse cx="17" cy="13.75" rx="1.4" ry="0.85" fill="#FF6B5C"/>
+      <path transform="translate(9 10.2) rotate(-17.19)" d="M-2.2 0a2.2 2.2 0 0 0 4.4 0Z" fill="var(--dumbscroll-yellow-mid)"/>
+      <path d="M16.2 8.9 13.9 10.1 15.9 11.3" fill="none" stroke="var(--dumbscroll-yellow-mid)" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8.60 15.70 L8.81 15.86 L9.03 16.00 L9.24 16.12 L9.45 16.19 L9.66 16.22 L9.88 16.19 L10.09 16.12 L10.30 16.00 L10.51 15.84 L10.72 15.66 L10.94 15.47 L11.15 15.28 L11.36 15.12 L11.57 14.98 L11.79 14.89 L12.00 14.85 L12.21 14.86 L12.42 14.92 L12.64 15.02 L12.85 15.16 L13.06 15.31 L13.27 15.47 L13.49 15.62 L13.70 15.75 L13.91 15.84 L14.12 15.88 L14.34 15.88 L14.55 15.82 L14.76 15.71 L14.97 15.56 L15.19 15.39 L15.40 15.20" fill="none" stroke="var(--dumbscroll-yellow-mid)" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
     </svg>
   `;
 

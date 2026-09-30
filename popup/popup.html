@@ -73,25 +73,19 @@
       </label>
       <input id="jev-threshold" type="range" min="0.5" max="0.95" step="0.05" />
 
-      <p class="field-label" id="jev-provider-label">Jev provider</p>
-      <div class="segmented segmented-2" role="radiogroup" aria-labelledby="jev-provider-label">
-        <label>
-          <input type="radio" name="jev-provider" value="openrouter" checked />
-          <span>OpenRouter</span>
-        </label>
-        <label>
-          <input type="radio" name="jev-provider" value="typesafe" />
-          <span>TypeSafe</span>
-        </label>
-      </div>
-
-      <label for="jev-key" class="field-label" id="jev-key-label">OpenRouter API key</label>
+      <label for="jev-key" class="field-label">
+        OpenRouter API key
+        <a class="field-link" href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Get a key</a>
+      </label>
       <div class="settings-row">
-        <input id="jev-key" type="password" autocomplete="off" spellcheck="false" />
+        <input id="jev-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-…" />
         <button id="jev-test" type="button" class="button">Test</button>
       </div>
       <p id="jev-status" class="help" aria-live="polite"></p>
-      <p class="help fine" id="jev-privacy"></p>
+      <p class="help fine">
+        Post text and author name from LinkedIn and X are sent to Jev via OpenRouter to classify
+        them. Posts labelled Promoted or Ad are blurred locally.
+      </p>
     </section>
 
     <details class="card limits" id="limits">
@@ -103,7 +97,6 @@
       <label for="daily-max" class="field-label">Daily max (combined)</label>
       <div class="settings-row">
         <input id="daily-max" type="number" min="1" max="9999" step="1" />
-        <span id="max-status" class="status" aria-live="polite"></span>
       </div>
       <p id="settings-help" class="help">
         At this total, the yellow bar fills the full screen height. You can change the limit only
@@ -113,12 +106,17 @@
       <label for="wind-down" class="field-label">Wind down</label>
       <div class="settings-row">
         <input id="wind-down" type="time" />
-        <span id="wind-down-status" class="status" aria-live="polite"></span>
       </div>
       <p id="wind-down-help" class="help">
         After this time, the yellow overlay covers the screen until midnight — no matter how many
         posts you've seen. You can change the time only before wind down starts.
       </p>
+
+      <div class="settings-row limits-actions">
+        <button id="limits-save" type="button" class="button" disabled>Save limits</button>
+        <button id="limits-cancel" type="button" class="button ghost" hidden>Cancel</button>
+        <span id="limits-status" class="status" aria-live="polite"></span>
+      </div>
     </details>
 
     <script src="../content/shared/wind-down.js"></script>

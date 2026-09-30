@@ -5,11 +5,11 @@ const STATE_KEY = "dumbscroll";
 const LEGACY_STATE_KEY = "doomscroll";
 const SETTINGS_KEY = "dumbscrollSettings";
 const LEGACY_SETTINGS_KEY = "doomscrollSettings";
-let saveTimer = null;
-let windDownSaveTimer = null;
 let overlayModeSaveTimer = null;
 let pendingOverlayMode = null;
 let settingsLoadGen = 0;
+let limitsDirty = false;
+let storedWindDownTime = DEFAULT_WIND_DOWN_TIME;
 
 function todayKey() {
   return new Date().toLocaleDateString("en-CA");
@@ -88,6 +88,7 @@ function dailyMaxHelpText(overlayMode) {
 }
 
 function updateWindDownControl(windDownTime, now = new Date()) {
+  storedWindDownTime = windDownTime;
   const input = document.getElementById("wind-down");
   const help = document.getElementById("wind-down-help");
   const locked = !DumbscrollWindDown.canChangeWindDownTime(now, windDownTime);
@@ -96,8 +97,14 @@ function updateWindDownControl(windDownTime, now = new Date()) {
   input.disabled = locked;
   input.classList.toggle("is-locked", locked);
 
+  const pending = normalizeWindDownTime(input.value || windDownTime);
+  const startsNow = !locked && limitsDirty && DumbscrollWindDown.isWindDownActive(now, pending);
+  help.classList.toggle("is-warning", startsNow);
+
   if (locked && reason) {
     help.textContent = reason;
+  } else if (startsNow) {
+    help.textContent = `${pending} has already passed today, so wind down would start as soon as you save.`;
   } else {
     help.textContent =
       "After this time, the yellow overlay covers the screen until midnight — no matter how many posts you've seen. You can change the time only before wind down starts.";
@@ -171,102 +178,73 @@ async function loadSettings() {
     return;
   }
 
-  document.getElementById("daily-max").value = String(dailyMax);
-  document.getElementById("wind-down").value = windDownTime;
+  if (!limitsDirty) {
+    document.getElementById("daily-max").value = String(dailyMax);
+    document.getElementById("wind-down").value = windDownTime;
+  }
   updateOverlayModeControl(overlayModeFromStorage(overlayMode));
   updateLimitControl(total, dailyMax);
   updateWindDownControl(windDownTime);
 }
 
-async function saveDailyMax(showStatus = true) {
-  const overlayMode = readSelectedOverlayMode();
-  const input = document.getElementById("daily-max");
-  const settings = await readStoredSettings();
-  const currentMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
-  const total = await readTodayUsage();
+function setLimitsDirty(dirty) {
+  limitsDirty = dirty;
+  const saveButton = document.getElementById("limits-save");
+  if (saveButton) {
+    saveButton.disabled = !dirty;
+  }
+  const cancelButton = document.getElementById("limits-cancel");
+  if (cancelButton) {
+    cancelButton.hidden = !dirty;
+  }
+  document.getElementById("limits-summary")?.classList.toggle("is-unsaved", dirty);
+}
 
-  if (!DumbscrollLimitLock.canChangeDailyLimit(total, currentMax)) {
-    input.value = String(currentMax);
-    updateLimitControl(total, currentMax);
-
-    if (showStatus) {
-      const status = document.getElementById("max-status");
-      status.textContent = "Locked";
-      setTimeout(() => {
-        status.textContent = "";
-      }, 1200);
-    }
-
+function flashStatus(id, text) {
+  const status = document.getElementById(id);
+  if (!status) {
     return;
   }
 
-  const dailyMax = normalizeMax(input.value);
-  input.value = String(dailyMax);
+  status.textContent = text;
+  setTimeout(() => {
+    status.textContent = "";
+  }, 1600);
+}
 
-  const storedWindDown = normalizeWindDownTime(settings?.windDownTime);
-  const windDownTime = DumbscrollWindDown.canChangeWindDownTime(new Date(), storedWindDown)
-    ? document.getElementById("wind-down").value
-    : storedWindDown;
+async function saveLimits() {
+  const settings = await readStoredSettings();
+  const currentMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
+  const currentWindDownTime = normalizeWindDownTime(settings?.windDownTime);
+  const total = await readTodayUsage();
+  const canChangeMax = DumbscrollLimitLock.canChangeDailyLimit(total, currentMax);
+  const canChangeWindDown = DumbscrollWindDown.canChangeWindDownTime(new Date(), currentWindDownTime);
+
+  const maxInput = document.getElementById("daily-max");
+  const windDownInput = document.getElementById("wind-down");
+  const dailyMax = canChangeMax ? normalizeMax(maxInput.value) : currentMax;
+  const windDownTime = canChangeWindDown
+    ? normalizeWindDownTime(windDownInput.value)
+    : currentWindDownTime;
 
   const payload = await buildSettingsPayload({
     dailyMax,
     windDownTime,
-    overlayMode,
+    overlayMode: pendingOverlayMode ?? settings?.overlayMode,
   });
   await chrome.storage.local.set({ [SETTINGS_KEY]: payload });
-  updateLimitControl(total, dailyMax);
-  updateWindDownControl(normalizeWindDownTime(windDownTime));
-  updateOverlayModeControl(payload.overlayMode);
 
-  if (showStatus) {
-    const status = document.getElementById("max-status");
-    status.textContent = "Saved";
-    setTimeout(() => {
-      status.textContent = "";
-    }, 1200);
-  }
+  setLimitsDirty(false);
+  maxInput.value = String(dailyMax);
+  windDownInput.value = windDownTime;
+  updateLimitControl(total, dailyMax);
+  updateWindDownControl(windDownTime);
+  flashStatus("limits-status", canChangeMax && canChangeWindDown ? "Saved" : "Saved · locked fields kept");
 }
 
-async function saveWindDown(showStatus = true) {
-  const overlayMode = readSelectedOverlayMode();
-  const input = document.getElementById("wind-down");
-  const settings = await readStoredSettings();
-  const currentWindDownTime = normalizeWindDownTime(settings?.windDownTime);
-
-  if (!DumbscrollWindDown.canChangeWindDownTime(new Date(), currentWindDownTime)) {
-    input.value = currentWindDownTime;
-    updateWindDownControl(currentWindDownTime);
-
-    if (showStatus) {
-      const status = document.getElementById("wind-down-status");
-      status.textContent = "Locked";
-      setTimeout(() => {
-        status.textContent = "";
-      }, 1200);
-    }
-
-    return;
-  }
-
-  const windDownTime = normalizeWindDownTime(input.value);
-  input.value = windDownTime;
-
-  const payload = await buildSettingsPayload({
-    dailyMax: document.getElementById("daily-max").value,
-    windDownTime,
-    overlayMode,
-  });
-  await chrome.storage.local.set({ [SETTINGS_KEY]: payload });
-  updateWindDownControl(windDownTime);
-  updateOverlayModeControl(payload.overlayMode);
-
-  if (showStatus) {
-    const status = document.getElementById("wind-down-status");
-    status.textContent = "Saved";
-    setTimeout(() => {
-      status.textContent = "";
-    }, 1200);
-  }
+async function cancelLimits() {
+  setLimitsDirty(false);
+  await loadSettings();
 }
 
 async function render() {
@@ -306,14 +284,9 @@ async function render() {
 
   renderFilterDay(DumbscrollFilterCore.normalizeDay(stored[DumbscrollFilterCore.DAY_KEY], today));
 
-  const maxInput = document.getElementById("daily-max");
-  if (!maxInput.matches(":focus")) {
-    maxInput.value = String(dailyMax);
-  }
-
-  const windDownInput = document.getElementById("wind-down");
-  if (!windDownInput.matches(":focus")) {
-    windDownInput.value = windDownTime;
+  if (!limitsDirty) {
+    document.getElementById("daily-max").value = String(dailyMax);
+    document.getElementById("wind-down").value = windDownTime;
   }
 
   // Overlay radios are owned by the click handler + loadSettings.
@@ -330,25 +303,9 @@ async function saveOverlayMode(
   pendingOverlayMode = mode;
   updateOverlayModeControl(mode);
 
-  const settings = await readStoredSettings();
-  const currentMax = normalizeMax(settings?.dailyMax ?? DEFAULT_DAILY_MAX);
-  const currentWindDownTime = normalizeWindDownTime(settings?.windDownTime);
   const total = await readTodayUsage();
-  const dailyMax = DumbscrollLimitLock.canChangeDailyLimit(total, currentMax)
-    ? document.getElementById("daily-max").value
-    : currentMax;
-  const windDownTime = DumbscrollWindDown.canChangeWindDownTime(
-    new Date(),
-    currentWindDownTime
-  )
-    ? document.getElementById("wind-down").value
-    : currentWindDownTime;
 
-  const payload = await buildSettingsPayload({
-    dailyMax,
-    windDownTime,
-    overlayMode: mode,
-  });
+  const payload = await buildSettingsPayload({ overlayMode: mode });
   try {
     await chrome.storage.local.set({ [SETTINGS_KEY]: payload });
     updateOverlayModeControl(mode);
@@ -390,8 +347,7 @@ function renderFilterStatus() {
   let text = "";
   let tone = "";
   if (!filterSettings.apiKey) {
-    const provider = DumbscrollFilterCore.providerFor(filterSettings.provider);
-    text = `Add your ${provider.label} API key to start filtering. Promoted/Ad labels work without it.`;
+    text = "Add your OpenRouter API key to start filtering. Promoted/Ad labels work without it.";
   } else if (lastFilterStatus) {
     text = lastFilterStatus.message;
     tone = lastFilterStatus.ok ? "is-ok" : "is-error";
@@ -420,16 +376,6 @@ function renderFilterSettings() {
     return;
   }
 
-  const provider = DumbscrollFilterCore.providerFor(filterSettings.provider);
-  document.querySelectorAll('input[name="jev-provider"]').forEach((input) => {
-    input.checked = input.value === provider.id;
-  });
-  setText("jev-key-label", `${provider.label} API key`);
-  setText(
-    "jev-privacy",
-    `Post text and author name from LinkedIn and X are sent to Jev via ${provider.label} to classify them. Posts labelled Promoted or Ad are blurred locally.`
-  );
-  keyInput.placeholder = provider.keyPlaceholder;
   if (!keyInput.matches(":focus")) {
     keyInput.value = filterSettings.apiKey;
   }
@@ -458,16 +404,10 @@ async function loadFilterSettings() {
 }
 
 async function saveFilterSettings(partial) {
-  const { apiKey, ...rest } = partial;
-  const provider = rest.provider ?? filterSettings.provider;
-  const apiKeys =
-    apiKey === undefined ? filterSettings.apiKeys : { ...filterSettings.apiKeys, [provider]: apiKey };
-
   filterSettings = DumbscrollFilterCore.normalizeSettings({
     ...filterSettings,
-    ...rest,
-    apiKeys,
-    enabled: { ...filterSettings.enabled, ...rest.enabled },
+    ...partial,
+    enabled: { ...filterSettings.enabled, ...partial.enabled },
   });
   renderFilterSettings();
   await chrome.storage.local.set({ [DumbscrollFilterCore.SETTINGS_KEY]: filterSettings });
@@ -528,16 +468,6 @@ function bindFilterControls() {
     saveFilterSettings({ apiKey: keyInput.value });
   });
 
-  document.querySelectorAll('input[name="jev-provider"]').forEach((input) => {
-    input.addEventListener("change", async () => {
-      clearTimeout(filterSaveTimer);
-      lastFilterStatus = null;
-      keyInput.blur();
-      await saveFilterSettings({ apiKey: keyInput.value });
-      await saveFilterSettings({ provider: input.value });
-    });
-  });
-
   const threshold = document.getElementById("jev-threshold");
   threshold.addEventListener("input", () => {
     setText(
@@ -572,32 +502,24 @@ function bindPopupControls() {
   const windDownInput = document.getElementById("wind-down");
   const overlayModeInputs = document.querySelectorAll('input[name="overlay-mode"]');
 
-  maxInput.addEventListener("input", () => {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      saveDailyMax(true);
-      render();
-    }, 400);
+  [maxInput, windDownInput].forEach((input) => {
+    input.addEventListener("input", () => {
+      setLimitsDirty(true);
+      updateWindDownControl(storedWindDownTime);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && limitsDirty) {
+        event.preventDefault();
+        saveLimits();
+      }
+    });
   });
 
-  maxInput.addEventListener("change", () => {
-    clearTimeout(saveTimer);
-    saveDailyMax(true);
-    render();
+  document.getElementById("limits-save")?.addEventListener("click", () => {
+    saveLimits();
   });
-
-  windDownInput.addEventListener("input", () => {
-    clearTimeout(windDownSaveTimer);
-    windDownSaveTimer = setTimeout(() => {
-      saveWindDown(true);
-      render();
-    }, 400);
-  });
-
-  windDownInput.addEventListener("change", () => {
-    clearTimeout(windDownSaveTimer);
-    saveWindDown(true);
-    render();
+  document.getElementById("limits-cancel")?.addEventListener("click", () => {
+    cancelLimits();
   });
 
   overlayModeInputs.forEach((input) => {
@@ -638,6 +560,7 @@ if (typeof document !== "undefined" && document.getElementById("daily-max")) {
 if (typeof module !== "undefined") {
   module.exports = {
     saveOverlayMode,
+    saveLimits,
     loadSettings,
     render,
     initPopup,
